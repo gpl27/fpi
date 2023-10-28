@@ -1,1 +1,2 @@
 # fpi
+- requires gtk
