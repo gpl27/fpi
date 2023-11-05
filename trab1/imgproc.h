@@ -2,14 +2,6 @@
 
 #define map(i, j, k, x, n) (i*x*n + j*n + k)
 
-void memswap(void* a, void* b, size_t n) {
-    char *tmp = malloc(n);
-    memcpy(tmp, a, n);
-    memcpy(a, b, n);
-    memcpy(b, tmp, n);
-    free(tmp);
-}
-
 void rgb_to_l(unsigned char* data, int x, int y, int n) {
     int Ri, Gi, Bi;
     unsigned char L;
@@ -25,17 +17,25 @@ void rgb_to_l(unsigned char* data, int x, int y, int n) {
 }
 
 void vflip(unsigned char* data, int x, int y, int n) {
+    char *tmp = malloc(x*n);
     for (int i = 0; i < (int) (y/2); i ++) {
-        memswap(&data[i*x*n], &data[(y-i)*x*n], x*n);
+        memcpy(tmp, data + i*x*n, x*n);
+        memcpy(data + i*x*n, data + (y-i-1)*x*n, x*n);
+        memcpy(data + (y-i-1)*x*n, tmp, x*n);
     }
+    free(tmp);
 }
 
 void hflip(unsigned char *data, int x, int y, int n) {
+    char *tmp = malloc(n);
     for (int j = 0; j < (int) (x/2) ; j++) {
         for (int i = 0; i < y; i++) {
-            memswap(&data[map(i,j,0,x,n)], &data[map(i,(x-j),0,x,n)], n);
+            memcpy(tmp, data + map(i,j,0,x,n), n);
+            memcpy(data + map(i,j,0,x,n), data + map(i,(x-j),0,x,n), n);
+            memcpy(data + map(i,(x-j),0,x,n), tmp, n);
         }
     }
+    free(tmp);
 }
 
 void l_quantize(unsigned char *data, int x, int y, int n, int q) {
