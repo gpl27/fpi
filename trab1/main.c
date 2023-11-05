@@ -8,6 +8,7 @@
 #include "stb_image_write.h"
 #define STBI_ONLY_JPEG
 
+#define IMGPROC_IMPLEMENTATION
 #include "imgproc.h"
 
 #define JPEG_QLTY 100
@@ -70,10 +71,8 @@ void open_file_dialog_response(GtkDialog *dialog, int response, ImageData *metad
         GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
         GFile *file = gtk_file_chooser_get_file (chooser);
         char *filename = g_file_get_path(file);
-        g_print("Filename: %s\n", filename);
         load_image(filename, metadata);
         place_image_inwindow(filename, metadata);
-        g_print("x:%d y:%d n:%d\n", metadata->width, metadata->height, metadata->channels);
         free(filename);
         g_object_unref(file);
     }
@@ -86,7 +85,6 @@ void save_file_dialog_response(GtkDialog *dialog, int response, ImageData *metad
         GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
         GFile *file = gtk_file_chooser_get_file (chooser);
         char *filename = g_file_get_path(file);
-        g_print("New Filename: %s\n", filename);
         save_image(filename, metadata);
         free(filename);
         g_object_unref(file);
@@ -170,7 +168,6 @@ void q_button_click(GtkWidget *widget, ImageData *metadata) {
         return;
     }
     int q = gtk_spin_button_get_value_as_int(metadata->q_amount);
-    g_print("q: %d\n", q);
     l_quantize(unpack_meta(metadata), q);
     place_image_outwindow(metadata);
 }
