@@ -23,6 +23,7 @@ typedef struct {
     GdkPixbuf *pixbuf;
     GtkWidget *in_window;
     GtkWidget *out_window;
+    GtkSpinButton *q_amount;
 } ImageData;
 
 void load_image(char *filename, ImageData *metadata) {
@@ -44,7 +45,6 @@ void convert_image_to_Pixbuf(ImageData *metadata) {
     // Unref previous data
     if (metadata->pixbuf != NULL) {
         g_object_unref(metadata->pixbuf);
-        metadata->pixbuf = NULL;
     }
     GBytes* data = g_bytes_new(metadata->data, metadata->width * metadata->height * metadata->channels);
     metadata->pixbuf = gdk_pixbuf_new_from_bytes(data, GDK_COLORSPACE_RGB, FALSE, 8, metadata->width, metadata->height, metadata->width * metadata->channels);
@@ -54,6 +54,7 @@ void convert_image_to_Pixbuf(ImageData *metadata) {
 void place_image_outwindow(ImageData *metadata) {
     convert_image_to_Pixbuf(metadata);
     GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->pixbuf);
+    gtk_window_set_default_size(GTK_WINDOW(metadata->out_window), metadata->width, metadata->height);
     gtk_window_set_child(GTK_WINDOW(metadata->out_window), img);
 }
 
@@ -61,6 +62,7 @@ void place_image_inwindow(char *filename, ImageData *metadata) {
     GtkWidget *img;
     img = gtk_picture_new_for_filename(filename);
     gtk_window_set_child(GTK_WINDOW(metadata->in_window), img);
+    gtk_widget_set_size_request(metadata->in_window, metadata->width, metadata->height);
 }
 
 void open_file_dialog_response(GtkDialog *dialog, int response, ImageData *metadata) {
@@ -159,7 +161,18 @@ void gray_button_click(GtkWidget *widget, ImageData *metadata) {
 }
 
 void q_button_click(GtkWidget *widget, ImageData *metadata) {
-
+    if (metadata->data == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    if (!metadata->grayscale) {
+        g_print("Image must be grayscale\n");
+        return;
+    }
+    int q = gtk_spin_button_get_value_as_int(metadata->q_amount);
+    g_print("q: %d\n", q);
+    l_quantize(unpack_meta(metadata), q);
+    place_image_outwindow(metadata);
 }
 
 static void activate(GtkApplication *app, ImageData *metadata) {
@@ -215,6 +228,7 @@ static void activate(GtkApplication *app, ImageData *metadata) {
     // Connect callbacks
     metadata->in_window = in_window;
     metadata->out_window = out_window;
+    metadata->q_amount = GTK_SPIN_BUTTON(q_amount);
     g_signal_connect(load_button, "clicked", G_CALLBACK(load_button_click), metadata);
     g_signal_connect(save_button, "clicked", G_CALLBACK(save_button_click), metadata);
     g_signal_connect(hflip_button, "clicked", G_CALLBACK(hflip_button_click), metadata);
