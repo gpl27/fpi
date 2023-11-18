@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="FotoChopp">
+    <requires lib="gtk" version="4.0" />
+    <!-- Tool Window -->
+    <object class="GtkWindow" id="tools">
+        <property name="title">Tools</property>
+        <property name="resizable">FALSE</property>
+        <property name="default-width">200</property>
+        <property name="default-height">400</property>
+        <child>
+            <object class="GtkBox" id="tool-box">
+                <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
+                <property name="halign">GTK_ALIGN_CENTER</property>
+                <property name="valign">GTK_ALIGN_CENTER</property>
+                <property name="spacing">8</property>
+                <child>
+                    <object class="GtkButton" id="load-button">
+                        <property name="label">Load Image</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="reset-button">
+                        <property name="label">Reset Image</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="save-button">
+                        <property name="label">Save Image</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="hflip-button">
+                        <property name="label">H Flip</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="vflip-button">
+                        <property name="label">V Flip</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="gray-button">
+                        <property name="label">Grayscale</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkAdjustment" id="q-adjustment">
+                        <property name="lower">1</property>
+                        <property name="upper">256</property>
+                        <property name="step-increment">1</property>
+                        <property name="page-increment">0</property>
+                        <property name="page-size">0</property>
+                        <property name="value">128</property>
+                    </object>
+                    <object class="GtkSpinButton" id="q-amount">
+                        <property name="adjustment">q-adjustment</property>
+                        <property name="climb-rate">1</property>
+                        <property name="digits">0</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="q-button">
+                        <property name="label">Quantize</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </object>
+    <!-- Image Windows -->
+    <object class="GtkWindow" id="source">
+        <property name="title">Source</property>
+        <property name="transient-for">tools</property>
+        <property name="deletable">FALSE</property>
+        <property name="destroy-with-parent">TRUE</property>
+    </object>
+    <object class="GtkWindow" id="output">
+        <property name="title">Output</property>
+        <property name="transient-for">tools</property>
+        <property name="deletable">FALSE</property>
+        <property name="destroy-with-parent">TRUE</property>
+    </object>
+</interface>

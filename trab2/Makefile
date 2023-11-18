@@ -12,3 +12,6 @@ main: main.c
 test: test.c 
 	$(CC) -o test test.c $(LDLIBS)
 
+clean:
+	rm main 
+

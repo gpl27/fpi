@@ -1,10 +1,12 @@
 #ifndef IMGPROC_H
 #define IMGPROC_H
 
-void rgb_to_l(unsigned char* data, int x, int y, int n);
-void vflip(unsigned char* data, int x, int y, int n);
-void hflip(unsigned char *data, int x, int y, int n);
-void l_quantize(unsigned char *data, int x, int y, int n, int q);
+#include <gdk/gdk.h>
+
+void rgb_to_l(GdkPixbuf *image);
+void vflip(GdkPixbuf *image);
+void hflip(GdkPixbuf *image);
+void l_quantize(GdkPixbuf *image, int q);
 
 
 #ifdef IMGPROC_IMPLEMENTATION
@@ -13,7 +15,7 @@ void l_quantize(unsigned char *data, int x, int y, int n, int q);
 
 #define map(i, j, k, x, n) (i*x*n + j*n + k)
 
-void rgb_to_l(unsigned char* data, int x, int y, int n) {
+void rgb_to_l(GdkPixbuf *image) {
     int Ri, Gi, Bi;
     unsigned char L;
     for (int i = 0; i < y; i++) {
@@ -27,7 +29,7 @@ void rgb_to_l(unsigned char* data, int x, int y, int n) {
     }
 }
 
-void vflip(unsigned char* data, int x, int y, int n) {
+void vflip(GdkPixbuf *image) {
     char *tmp = malloc(x*n);
     for (int i = 0; i < (int) (y/2); i ++) {
         memcpy(tmp, data + i*x*n, x*n);
@@ -37,7 +39,7 @@ void vflip(unsigned char* data, int x, int y, int n) {
     free(tmp);
 }
 
-void hflip(unsigned char *data, int x, int y, int n) {
+void hflip(GdkPixbuf *image) {
     char *tmp = malloc(n);
     for (int j = 0; j < (int) (x/2) ; j++) {
         for (int i = 0; i < y; i++) {
@@ -49,7 +51,7 @@ void hflip(unsigned char *data, int x, int y, int n) {
     free(tmp);
 }
 
-void l_quantize(unsigned char *data, int x, int y, int n, int q) {
+void l_quantize(GdkPixbuf *image, int q) {
     // Find t1 and t2 (min and max)
     int t1 = data[0];
     int t2 = data[0];
