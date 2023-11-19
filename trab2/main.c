@@ -160,6 +160,15 @@ void gray_button_click(GtkWidget *widget, AppData *metadata) {
     metadata->image.grayscale = TRUE;
 }
 
+void neg_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->image.output == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    negative(metadata->image.output);
+    place_image_outwindow(metadata);
+}
+
 void q_button_click(GtkWidget *widget, AppData *metadata) {
     if (metadata->image.output == NULL) {
         g_print("No image loaded\n");
@@ -174,12 +183,34 @@ void q_button_click(GtkWidget *widget, AppData *metadata) {
     place_image_outwindow(metadata);
 }
 
+void b_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->image.output == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    int b = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(metadata->b_amount));
+    brightness(metadata->image.output, b);
+    place_image_outwindow(metadata);
+}
+
+void c_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->image.output == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double c = gtk_spin_button_get_value(GTK_SPIN_BUTTON(metadata->c_amount));
+    contrast(metadata->image.output, c);
+    place_image_outwindow(metadata);
+}
+
 static void activate(GtkApplication *app, AppData *metadata) {
 
     GtkWidget *tool_window, *src_window, *out_window;
     GtkWidget *load_button, *reset_button, *save_button,
               *hflip_button, *vflip_button, *gray_button,
-              *q_amount, *q_button;
+              *neg_button, *q_amount, *q_button,
+              *b_amount, *b_button, *c_amount,
+              *c_button;
     GtkBuilder *builder = gtk_builder_new_from_file("ui.xml");
     tool_window = GTK_WIDGET(gtk_builder_get_object(builder, "tools"));
     src_window = GTK_WIDGET(gtk_builder_get_object(builder, "source"));
@@ -190,14 +221,21 @@ static void activate(GtkApplication *app, AppData *metadata) {
     hflip_button = GTK_WIDGET(gtk_builder_get_object(builder, "hflip-button"));
     vflip_button = GTK_WIDGET(gtk_builder_get_object(builder, "vflip-button"));
     gray_button = GTK_WIDGET(gtk_builder_get_object(builder, "gray-button"));
+    neg_button = GTK_WIDGET(gtk_builder_get_object(builder, "neg-button"));
     q_amount = GTK_WIDGET(gtk_builder_get_object(builder, "q-amount"));
     q_button = GTK_WIDGET(gtk_builder_get_object(builder, "q-button"));
+    b_amount = GTK_WIDGET(gtk_builder_get_object(builder, "b-amount"));
+    b_button = GTK_WIDGET(gtk_builder_get_object(builder, "b-button"));
+    c_amount = GTK_WIDGET(gtk_builder_get_object(builder, "c-amount"));
+    c_button = GTK_WIDGET(gtk_builder_get_object(builder, "c-button"));
 
     gtk_window_set_application(GTK_WINDOW(tool_window), app);
 
     metadata->src_window = src_window;
     metadata->out_window = out_window;
     metadata->q_amount = q_amount;
+    metadata->b_amount = b_amount;
+    metadata->c_amount = c_amount;
 
     g_signal_connect(load_button, "clicked", G_CALLBACK(load_button_click), metadata);
     g_signal_connect(reset_button, "clicked", G_CALLBACK(reset_button_click), metadata);
@@ -205,7 +243,10 @@ static void activate(GtkApplication *app, AppData *metadata) {
     g_signal_connect(hflip_button, "clicked", G_CALLBACK(hflip_button_click), metadata);
     g_signal_connect(vflip_button, "clicked", G_CALLBACK(vflip_button_click), metadata);
     g_signal_connect(gray_button, "clicked", G_CALLBACK(gray_button_click), metadata);
+    g_signal_connect(neg_button, "clicked", G_CALLBACK(neg_button_click), metadata);
     g_signal_connect(q_button, "clicked", G_CALLBACK(q_button_click), metadata);
+    g_signal_connect(b_button, "clicked", G_CALLBACK(b_button_click), metadata);
+    g_signal_connect(c_button, "clicked", G_CALLBACK(c_button_click), metadata);
 
     gtk_widget_show(tool_window);
     gtk_widget_show(src_window);

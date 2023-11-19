@@ -9,8 +9,8 @@
         <property name="default-height">700</property>
         <child>
             <object class="GtkGrid" id="tool-grid">
-                <property name="row-spacing">8</property>
-                <property name="column-spacing">8</property>
+                <property name="row-spacing">4</property>
+                <property name="column-spacing">4</property>
                 <property name="column-homogeneous">TRUE</property>
                 <child>
                     <object class="GtkButton" id="load-button">

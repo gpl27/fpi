@@ -8,6 +8,15 @@ void vflip(GdkPixbuf *image);
 void hflip(GdkPixbuf *image);
 void l_quantize(GdkPixbuf *image, int q);
 
+void negative(GdkPixbuf *image);
+void brightness(GdkPixbuf *image, int b);
+void contrast(GdkPixbuf *image, double c);
+void zoom_out(GdkPixbuf *image, int sx, int sy);
+void zoom_in(GdkPixbuf *image);
+void rotate_right90(GdkPixbuf *image);
+void rotate_left90(GdkPixbuf *image);
+void convolute(GdkPixbuf *image, double **kernel);
+
 
 #ifdef IMGPROC_IMPLEMENTATION
 #include <stdlib.h>
@@ -94,6 +103,85 @@ void l_quantize(GdkPixbuf *image, int q) {
         L = round((double)(Li + Lj)/2);
         memset(&data[i], L, n);
     }
+}
+
+void negative(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+    int Ri, Gi, Bi;
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            Ri = map(i,j,0,x,n);
+            Gi = map(i,j,1,x,n);
+            Bi = map(i,j,2,x,n);
+            data[Ri] = 255 - data[Ri];
+            data[Gi] = 255 - data[Gi];
+            data[Bi] = 255 - data[Bi];
+        }
+    }
+
+}
+
+void brightness(GdkPixbuf *image, int b) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+    int Ri, Gi, Bi, tmp;
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            Ri = map(i,j,0,x,n);
+            Gi = map(i,j,1,x,n);
+            Bi = map(i,j,2,x,n);
+
+            tmp = data[Ri] + b;
+            tmp = (tmp < 0)? 0 : (tmp > 255)? 255 : tmp;
+            data[Ri] = tmp;
+
+            tmp = data[Gi] + b;
+            tmp = (tmp < 0)? 0 : (tmp > 255)? 255 : tmp;
+            data[Gi] = tmp;
+
+            tmp = data[Bi] + b;
+            tmp = (tmp < 0)? 0 : (tmp > 255)? 255 : tmp;
+            data[Bi] = tmp;
+        }
+    }
+
+}
+
+void contrast(GdkPixbuf *image, double c) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+    int Ri, Gi, Bi;
+    double tmp;
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            Ri = map(i,j,0,x,n);
+            Gi = map(i,j,1,x,n);
+            Bi = map(i,j,2,x,n);
+
+            tmp = data[Ri]*c;
+            tmp = (tmp > 255)? 255 : tmp;
+            data[Ri] = (int) tmp;
+
+            tmp = data[Gi]*c;
+            tmp = (tmp > 255)? 255 : tmp;
+            data[Gi] = (int) tmp;
+
+            tmp = data[Bi]*c;
+            tmp = (tmp > 255)? 255 : tmp;
+            data[Bi] = (int) tmp;
+        }
+    }
+
 }
 
 #endif
