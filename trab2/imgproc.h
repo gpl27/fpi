@@ -16,6 +16,11 @@ void l_quantize(GdkPixbuf *image, int q);
 #define map(i, j, k, x, n) (i*x*n + j*n + k)
 
 void rgb_to_l(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
     int Ri, Gi, Bi;
     unsigned char L;
     for (int i = 0; i < y; i++) {
@@ -30,6 +35,11 @@ void rgb_to_l(GdkPixbuf *image) {
 }
 
 void vflip(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
     char *tmp = malloc(x*n);
     for (int i = 0; i < (int) (y/2); i ++) {
         memcpy(tmp, data + i*x*n, x*n);
@@ -40,6 +50,11 @@ void vflip(GdkPixbuf *image) {
 }
 
 void hflip(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
     char *tmp = malloc(n);
     for (int j = 0; j < (int) (x/2) ; j++) {
         for (int i = 0; i < y; i++) {
@@ -52,6 +67,11 @@ void hflip(GdkPixbuf *image) {
 }
 
 void l_quantize(GdkPixbuf *image, int q) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
     // Find t1 and t2 (min and max)
     int t1 = data[0];
     int t2 = data[0];

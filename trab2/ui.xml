@@ -6,41 +6,74 @@
         <property name="title">Tools</property>
         <property name="resizable">FALSE</property>
         <property name="default-width">200</property>
-        <property name="default-height">400</property>
+        <property name="default-height">700</property>
         <child>
-            <object class="GtkBox" id="tool-box">
-                <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
-                <property name="halign">GTK_ALIGN_CENTER</property>
-                <property name="valign">GTK_ALIGN_CENTER</property>
-                <property name="spacing">8</property>
+            <object class="GtkGrid" id="tool-grid">
+                <property name="row-spacing">8</property>
+                <property name="column-spacing">8</property>
+                <property name="column-homogeneous">TRUE</property>
                 <child>
                     <object class="GtkButton" id="load-button">
                         <property name="label">Load Image</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">0</property>
+                        </layout>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="reset-button">
                         <property name="label">Reset Image</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">1</property>
+                            <property name="column-span">2</property>
+                        </layout>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="save-button">
                         <property name="label">Save Image</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">0</property>
+                        </layout>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="hflip-button">
                         <property name="label">H Flip</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">2</property>
+                        </layout>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="vflip-button">
                         <property name="label">V Flip</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">2</property>
+                        </layout>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="gray-button">
                         <property name="label">Grayscale</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">3</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="neg-button">
+                        <property name="label">Negative</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">3</property>
+                        </layout>
                     </object>
                 </child>
                 <child>
@@ -56,11 +89,386 @@
                         <property name="adjustment">q-adjustment</property>
                         <property name="climb-rate">1</property>
                         <property name="digits">0</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">4</property>
+                        </layout>
                     </object>
                 </child>
                 <child>
                     <object class="GtkButton" id="q-button">
+                        <property name="hexpand">TRUE</property>
                         <property name="label">Quantize</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">4</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkAdjustment" id="b-adjustment">
+                        <property name="lower">-255</property>
+                        <property name="upper">255</property>
+                        <property name="step-increment">1</property>
+                        <property name="page-increment">0</property>
+                        <property name="page-size">0</property>
+                        <property name="value">0</property>
+                    </object>
+                    <object class="GtkSpinButton" id="b-amount">
+                        <property name="adjustment">b-adjustment</property>
+                        <property name="climb-rate">1</property>
+                        <property name="digits">0</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">5</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="b-button">
+                        <property name="label">+/- Brightness</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">5</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkAdjustment" id="c-adjustment">
+                        <property name="lower">0.1</property>
+                        <property name="upper">255</property>
+                        <property name="step-increment">0.1</property>
+                        <property name="page-increment">0</property>
+                        <property name="page-size">0</property>
+                        <property name="value">1</property>
+                    </object>
+                    <object class="GtkSpinButton" id="c-amount">
+                        <property name="adjustment">c-adjustment</property>
+                        <property name="climb-rate">0.1</property>
+                        <property name="digits">1</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">6</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="c-button">
+                        <property name="label">+/- Contrast</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">6</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="hequ-button">
+                        <property name="label">Hist Equalize</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">7</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="hmatch-button">
+                        <property name="label">Hist Match</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">7</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="zout-button">
+                        <property name="label">Zoom Out</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">8</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="zin-button">
+                        <property name="label">Zoom In</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">8</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="rotr-button">
+                        <property name="label">Rotate 90</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">9</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="rotl-button">
+                        <property name="label">Rotate -90</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">9</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkGrid" id="conv-grid">
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">10</property>
+                            <property name="column-span">2</property>
+                        </layout>
+                        <property name="column-spacing">4</property>
+                        <property name="row-spacing">4</property>
+                        <child>
+                            <object class="GtkAdjustment" id="entry00-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry00">
+                                <property name="adjustment">entry00-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">0</property>
+                                    <property name="row">0</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry01-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry01">
+                                <property name="adjustment">entry01-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">1</property>
+                                    <property name="row">0</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry02-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry02">
+                                <property name="adjustment">entry02-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">2</property>
+                                    <property name="row">0</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry10-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry10">
+                                <property name="adjustment">entry10-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">0</property>
+                                    <property name="row">1</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry11-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry11">
+                                <property name="adjustment">entry11-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">1</property>
+                                    <property name="row">1</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry12-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry12">
+                                <property name="adjustment">entry12-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">2</property>
+                                    <property name="row">1</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry20-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry20">
+                                <property name="adjustment">entry20-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">0</property>
+                                    <property name="row">2</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry21-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry21">
+                                <property name="adjustment">entry21-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">1</property>
+                                    <property name="row">2</property>
+                                </layout>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkAdjustment" id="entry22-adjustment">
+                                <property name="lower">-255</property>
+                                <property name="upper">255</property>
+                                <property name="step-increment">0.1</property>
+                                <property name="page-increment">0</property>
+                                <property name="page-size">0</property>
+                                <property name="value">1.0</property>
+                            </object>
+                            <object class="GtkSpinButton" id="entry22">
+                                <property name="adjustment">entry22-adjustment</property>
+                                <property name="climb-rate">0.1</property>
+                                <property name="digits">1</property>
+                                <layout>
+                                    <property name="column">2</property>
+                                    <property name="row">2</property>
+                                </layout>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="conv-button">
+                        <property name="label">Convolute</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">11</property>
+                            <property name="column-span">2</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="gauss-button">
+                        <property name="label">Gaussian</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">12</property>
+                            <property name="column-span">2</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="lapl-button">
+                        <property name="label">Laplacian</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">13</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="hpgen-button">
+                        <property name="label">Generic High Pass</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">13</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="prex-button">
+                        <property name="label">Prewitt Hx</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">14</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="prey-button">
+                        <property name="label">Prewitt Hy</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">14</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="sobx-button">
+                        <property name="label">Sobel Hx</property>
+                        <layout>
+                            <property name="column">0</property>
+                            <property name="row">15</property>
+                        </layout>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkButton" id="soby-button">
+                        <property name="label">Sobel Hy</property>
+                        <layout>
+                            <property name="column">1</property>
+                            <property name="row">15</property>
+                        </layout>
                     </object>
                 </child>
             </object>
@@ -72,11 +480,13 @@
         <property name="transient-for">tools</property>
         <property name="deletable">FALSE</property>
         <property name="destroy-with-parent">TRUE</property>
+        <property name="resizable">FALSE</property>
     </object>
     <object class="GtkWindow" id="output">
         <property name="title">Output</property>
         <property name="transient-for">tools</property>
         <property name="deletable">FALSE</property>
         <property name="destroy-with-parent">TRUE</property>
+        <property name="resizable">FALSE</property>
     </object>
 </interface>

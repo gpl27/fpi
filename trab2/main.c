@@ -17,6 +17,9 @@ typedef struct {
     GtkWidget *src_window;
     GtkWidget *out_window;
     GtkWidget *q_amount;
+    GtkWidget *b_amount;
+    GtkWidget *c_amount;
+    GtkWidget **filter;
 } AppData;
 
 void load_image(char *filename, AppData *metadata) {
@@ -35,7 +38,7 @@ void load_image(char *filename, AppData *metadata) {
 }
 
 void save_image(char *filename, AppData *metadata) {
-    gdk_pixbuf_save(metadata->image.output, filename, "jpeg", NULL);
+    gdk_pixbuf_save(metadata->image.output, filename, "jpeg", NULL, NULL);
 }
 
 void place_image_outwindow(AppData *metadata) {
@@ -98,6 +101,16 @@ void load_button_click(GtkWidget* widget, AppData *metadata) {
     gtk_window_present(GTK_WINDOW (dialog));
 }
 
+void reset_button_click(GtkWidget* widget, AppData *metadata) {
+    if (metadata->image.original == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    g_object_unref(metadata->image.output);
+    metadata->image.output = gdk_pixbuf_copy(metadata->image.original);
+    place_image_outwindow(metadata);
+}
+
 void save_button_click(GtkWidget *widget, AppData *metadata) {
     if (metadata->image.output == NULL) {
         g_print("No image loaded\n");
@@ -152,12 +165,12 @@ void q_button_click(GtkWidget *widget, AppData *metadata) {
         g_print("No image loaded\n");
         return;
     }
-    if (!metadata->image.output) {
+    if (!metadata->image.grayscale) {
         g_print("Image must be grayscale\n");
         return;
     }
-    int q = gtk_spin_button_get_value_as_int(metadata->q_amount);
-    l_quantize(unpack_meta(metadata), q);
+    int q = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(metadata->q_amount));
+    l_quantize(metadata->image.output, q);
     place_image_outwindow(metadata);
 }
 
@@ -187,6 +200,7 @@ static void activate(GtkApplication *app, AppData *metadata) {
     metadata->q_amount = q_amount;
 
     g_signal_connect(load_button, "clicked", G_CALLBACK(load_button_click), metadata);
+    g_signal_connect(reset_button, "clicked", G_CALLBACK(reset_button_click), metadata);
     g_signal_connect(save_button, "clicked", G_CALLBACK(save_button_click), metadata);
     g_signal_connect(hflip_button, "clicked", G_CALLBACK(hflip_button_click), metadata);
     g_signal_connect(vflip_button, "clicked", G_CALLBACK(vflip_button_click), metadata);
