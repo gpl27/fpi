@@ -10,6 +10,7 @@ typedef struct {
     gboolean grayscale;
     GdkPixbuf *original;
     GdkPixbuf *output;
+    unsigned char *hist;
 } Image;
 
 typedef struct {
@@ -34,7 +35,10 @@ void load_image(char *filename, AppData *metadata) {
     // Load image data
     metadata->image.original = gdk_pixbuf_new_from_file(filename, NULL);
     metadata->image.output = gdk_pixbuf_copy(metadata->image.original);
-    metadata->image.grayscale = FALSE;
+    if (gdk_pixbuf_get_n_channels(metadata->image.original) == 1)
+        metadata->image.grayscale = TRUE;
+    else
+        metadata->image.grayscale = FALSE;
 }
 
 void save_image(char *filename, AppData *metadata) {
@@ -203,6 +207,43 @@ void c_button_click(GtkWidget *widget, AppData *metadata) {
     place_image_outwindow(metadata);
 }
 
+void rotr_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->image.output == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    metadata->image.output = rotate_right90(metadata->image.output);
+    place_image_outwindow(metadata);
+}
+
+void rotl_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->image.output == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    metadata->image.output = rotate_left90(metadata->image.output);
+    place_image_outwindow(metadata);
+}
+
+void zin_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->image.output == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    metadata->image.output = zoom_in(metadata->image.output);
+    place_image_outwindow(metadata);
+}
+
+void zout_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->image.output == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    int sx, sy;
+    metadata->image.output = zoom_out(metadata->image.output, sx, sy);
+    place_image_outwindow(metadata);
+}
+
 static void activate(GtkApplication *app, AppData *metadata) {
 
     GtkWidget *tool_window, *src_window, *out_window;
@@ -210,7 +251,8 @@ static void activate(GtkApplication *app, AppData *metadata) {
               *hflip_button, *vflip_button, *gray_button,
               *neg_button, *q_amount, *q_button,
               *b_amount, *b_button, *c_amount,
-              *c_button;
+              *c_button, *rotr_button, *rotl_button,
+              *zin_button, *zout_button;
     GtkBuilder *builder = gtk_builder_new_from_file("ui.xml");
     tool_window = GTK_WIDGET(gtk_builder_get_object(builder, "tools"));
     src_window = GTK_WIDGET(gtk_builder_get_object(builder, "source"));
@@ -228,6 +270,10 @@ static void activate(GtkApplication *app, AppData *metadata) {
     b_button = GTK_WIDGET(gtk_builder_get_object(builder, "b-button"));
     c_amount = GTK_WIDGET(gtk_builder_get_object(builder, "c-amount"));
     c_button = GTK_WIDGET(gtk_builder_get_object(builder, "c-button"));
+    rotr_button = GTK_WIDGET(gtk_builder_get_object(builder, "rotr-button"));
+    rotl_button = GTK_WIDGET(gtk_builder_get_object(builder, "rotl-button"));
+    zin_button = GTK_WIDGET(gtk_builder_get_object(builder, "zin-button"));
+    zout_button = GTK_WIDGET(gtk_builder_get_object(builder, "zout-button"));
 
     gtk_window_set_application(GTK_WINDOW(tool_window), app);
 
@@ -247,6 +293,10 @@ static void activate(GtkApplication *app, AppData *metadata) {
     g_signal_connect(q_button, "clicked", G_CALLBACK(q_button_click), metadata);
     g_signal_connect(b_button, "clicked", G_CALLBACK(b_button_click), metadata);
     g_signal_connect(c_button, "clicked", G_CALLBACK(c_button_click), metadata);
+    g_signal_connect(rotr_button, "clicked", G_CALLBACK(rotr_button_click), metadata);
+    g_signal_connect(rotl_button, "clicked", G_CALLBACK(rotl_button_click), metadata);
+    g_signal_connect(zin_button, "clicked", G_CALLBACK(zin_button_click), metadata);
+    g_signal_connect(zout_button, "clicked", G_CALLBACK(zout_button_click), metadata);
 
     gtk_widget_show(tool_window);
     gtk_widget_show(src_window);
@@ -261,11 +311,15 @@ int main(int argc, char **argv) {
     AppData metadata;
     metadata.image.original = NULL;
     metadata.image.output = NULL;
+    metadata.image.hist = malloc(sizeof(unsigned char)*256);
 
     app = gtk_application_new("dev.gpl27.fpi.trab1", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), &metadata);
     status = g_application_run(G_APPLICATION(app), argc, argv);
     g_object_unref(app);
+
+    // Destroy application state
+    free(metadata.image.hist);
 
     return status;
 }

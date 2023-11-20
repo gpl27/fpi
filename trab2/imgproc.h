@@ -1,3 +1,8 @@
+/*!
+ * TODO:
+ * Review functions to make sure pixels array is being correctly (safely)
+ * iterated
+*/
 #ifndef IMGPROC_H
 #define IMGPROC_H
 
@@ -7,25 +12,27 @@ void rgb_to_l(GdkPixbuf *image);
 void vflip(GdkPixbuf *image);
 void hflip(GdkPixbuf *image);
 void l_quantize(GdkPixbuf *image, int q);
-
 void negative(GdkPixbuf *image);
 void brightness(GdkPixbuf *image, int b);
 void contrast(GdkPixbuf *image, double c);
-void zoom_out(GdkPixbuf *image, int sx, int sy);
-void zoom_in(GdkPixbuf *image);
-void rotate_right90(GdkPixbuf *image);
-void rotate_left90(GdkPixbuf *image);
+GdkPixbuf *rotate_right90(GdkPixbuf *image);
+GdkPixbuf *rotate_left90(GdkPixbuf *image);
+GdkPixbuf *zoom_in(GdkPixbuf *image);
+
+GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy);
 void convolute(GdkPixbuf *image, double **kernel);
+void calculate_histogram(GdkPixbuf *image, unsigned char *hist);
 
 
 #ifdef IMGPROC_IMPLEMENTATION
 #include <stdlib.h>
 #include <math.h>
 
-#define map(i, j, k, x, n) (i*x*n + j*n + k)
+#define map(i, j, k, rs, n) (i*rs + j*n + k)
 
 void rgb_to_l(GdkPixbuf *image) {
     int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
@@ -34,9 +41,9 @@ void rgb_to_l(GdkPixbuf *image) {
     unsigned char L;
     for (int i = 0; i < y; i++) {
         for (int j = 0; j < x; j++) {
-            Ri = map(i,j,0,x,n);
-            Gi = map(i,j,1,x,n);
-            Bi = map(i,j,2,x,n);
+            Ri = map(i,j,0,rs,n);
+            Gi = map(i,j,1,rs,n);
+            Bi = map(i,j,2,rs,n);
             L = (unsigned char) (0.299*data[Ri] + 0.587*data[Gi] + 0.114*data[Bi]);
             memset(&data[Ri], L, n);
         }
@@ -45,6 +52,7 @@ void rgb_to_l(GdkPixbuf *image) {
 
 void vflip(GdkPixbuf *image) {
     int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
@@ -60,6 +68,7 @@ void vflip(GdkPixbuf *image) {
 
 void hflip(GdkPixbuf *image) {
     int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
@@ -77,6 +86,7 @@ void hflip(GdkPixbuf *image) {
 
 void l_quantize(GdkPixbuf *image, int q) {
     int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
@@ -107,6 +117,7 @@ void l_quantize(GdkPixbuf *image, int q) {
 
 void negative(GdkPixbuf *image) {
     int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
@@ -114,9 +125,9 @@ void negative(GdkPixbuf *image) {
     int Ri, Gi, Bi;
     for (int i = 0; i < y; i++) {
         for (int j = 0; j < x; j++) {
-            Ri = map(i,j,0,x,n);
-            Gi = map(i,j,1,x,n);
-            Bi = map(i,j,2,x,n);
+            Ri = map(i,j,0,rs,n);
+            Gi = map(i,j,1,rs,n);
+            Bi = map(i,j,2,rs,n);
             data[Ri] = 255 - data[Ri];
             data[Gi] = 255 - data[Gi];
             data[Bi] = 255 - data[Bi];
@@ -127,6 +138,7 @@ void negative(GdkPixbuf *image) {
 
 void brightness(GdkPixbuf *image, int b) {
     int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
@@ -134,9 +146,9 @@ void brightness(GdkPixbuf *image, int b) {
     int Ri, Gi, Bi, tmp;
     for (int i = 0; i < y; i++) {
         for (int j = 0; j < x; j++) {
-            Ri = map(i,j,0,x,n);
-            Gi = map(i,j,1,x,n);
-            Bi = map(i,j,2,x,n);
+            Ri = map(i,j,0,rs,n);
+            Gi = map(i,j,1,rs,n);
+            Bi = map(i,j,2,rs,n);
 
             tmp = data[Ri] + b;
             tmp = (tmp < 0)? 0 : (tmp > 255)? 255 : tmp;
@@ -156,6 +168,7 @@ void brightness(GdkPixbuf *image, int b) {
 
 void contrast(GdkPixbuf *image, double c) {
     int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
@@ -164,9 +177,9 @@ void contrast(GdkPixbuf *image, double c) {
     double tmp;
     for (int i = 0; i < y; i++) {
         for (int j = 0; j < x; j++) {
-            Ri = map(i,j,0,x,n);
-            Gi = map(i,j,1,x,n);
-            Bi = map(i,j,2,x,n);
+            Ri = map(i,j,0,rs,n);
+            Gi = map(i,j,1,rs,n);
+            Bi = map(i,j,2,rs,n);
 
             tmp = data[Ri]*c;
             tmp = (tmp > 255)? 255 : tmp;
@@ -182,6 +195,96 @@ void contrast(GdkPixbuf *image, double c) {
         }
     }
 
+}
+
+GdkPixbuf *rotate_right90(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+    GdkPixbuf *rimage = gdk_pixbuf_new(gdk_pixbuf_get_colorspace(image), FALSE, 8, y, x);
+    unsigned char *rdata = gdk_pixbuf_get_pixels(rimage);
+
+    int k = 0;
+    for (int i = 0; i < x; i++) {
+        for (int j = y - 1; j >= 0; j--) {
+            memcpy(&rdata[k], &data[map(j,i,0,rs,n)], n);
+            k += n;
+        }
+    }
+
+    g_object_unref(image);
+    return rimage;
+}
+
+GdkPixbuf *rotate_left90(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+    GdkPixbuf *rimage = gdk_pixbuf_new(gdk_pixbuf_get_colorspace(image), FALSE, 8, y, x);
+    unsigned char *rdata = gdk_pixbuf_get_pixels(rimage);
+
+    int k = 0;
+    for (int i = x - 1; i >= 0; i--) {
+        for (int j = 0; j < y; j++) {
+            memcpy(&rdata[k], &data[map(j,i,0,rs,n)], n);
+            k += n;
+        }
+    }
+
+    g_object_unref(image);
+    return rimage;
+}
+
+GdkPixbuf *zoom_in(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    int xn = 2*x - 1;
+    int yn = 2*y - 1;
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+    GdkPixbuf *nimage = gdk_pixbuf_new(gdk_pixbuf_get_colorspace(image), gdk_pixbuf_get_has_alpha(image), 8, xn, yn);
+    unsigned char *ndata = gdk_pixbuf_get_pixels(nimage);
+    int nrs = gdk_pixbuf_get_rowstride(nimage);
+
+    // Transfer pixels
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            memcpy(&ndata[map(2*i,2*j,0,nrs,n)], &data[map(i,j,0,rs,n)], n);
+        }
+    }
+
+    // Interpolate Rows
+    for (int i = 0; i < yn; i += 2) {
+        for (int j = 1; j < xn - 1; j += 2) {
+            for (int k = 0; k < n; k++) {
+                ndata[map(i,j,k,nrs,n)] = (unsigned char)((ndata[map(i,(j-1),k,nrs,n)] + ndata[map(i,(j+1),k,nrs,n)])/2);
+            }
+        }
+    }
+    // Interpolate Columns
+    for (int j = 0; j < xn; j++) {
+        for (int i = 1; i < yn - 1; i += 2) {
+            for (int k = 0; k < n; k++) {
+                ndata[map(i,j,k,nrs,n)] = (unsigned char)((ndata[map((i-1),j,k,nrs,n)] + ndata[map((i+1),j,k,nrs,n)])/2);
+            }
+        }
+    }
+
+    g_object_unref(image);
+    return nimage;
+}
+
+GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy) {
+
+    return image;
 }
 
 #endif
