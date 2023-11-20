@@ -108,6 +108,7 @@ void reset_button_click(GtkWidget* widget, AppData *metadata) {
     }
     g_object_unref(metadata->image.output);
     metadata->image.output = gdk_pixbuf_copy(metadata->image.original);
+    metadata->image.grayscale = FALSE;
     place_image_outwindow(metadata);
 }
 
@@ -175,8 +176,8 @@ void q_button_click(GtkWidget *widget, AppData *metadata) {
         return;
     }
     if (!metadata->image.grayscale) {
-        g_print("Image must be grayscale\n");
-        return;
+        rgb_to_l(metadata->image.output);
+        metadata->image.grayscale = TRUE;
     }
     int q = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(metadata->q_amount));
     l_quantize(metadata->image.output, q);
