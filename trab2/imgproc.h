@@ -1,8 +1,3 @@
-/*!
- * TODO:
- * Review functions to make sure pixels array is being correctly (safely)
- * iterated
-*/
 #ifndef IMGPROC_H
 #define IMGPROC_H
 
@@ -57,11 +52,18 @@ void vflip(GdkPixbuf *image) {
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
     unsigned char *data = gdk_pixbuf_get_pixels(image);
-    char *tmp = malloc(x*n);
-    for (int i = 0; i < (int) (y/2); i ++) {
-        memcpy(tmp, data + i*x*n, x*n);
-        memcpy(data + i*x*n, data + (y-i-1)*x*n, x*n);
-        memcpy(data + (y-i-1)*x*n, tmp, x*n);
+    char *tmp = malloc(rs);
+    int slast_row = x * ((n * 8 + 7) / 8);
+    // First swap top and bottom pixel rows because
+    // of gdk pixbuf properties (last row might not have
+    // padding)
+    memcpy(tmp, &data[map((y-1),0,0,rs,n)], slast_row);
+    memcpy(&data[map((y-1),0,0,rs,n)], data, slast_row);
+    memcpy(data, tmp, slast_row);
+    for (int i = 1; i < (int) (y/2) - 1; i++) {
+        memcpy(tmp, &data[map(i,0,0,rs,n)], rs);
+        memcpy(&data[map(i,0,0,rs,n)], &data[map((y-i-1),0,0,rs,n)], rs);
+        memcpy(&data[map((y-i-1),0,0,rs,n)], tmp, rs);
     }
     free(tmp);
 }
@@ -73,12 +75,12 @@ void hflip(GdkPixbuf *image) {
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
     unsigned char *data = gdk_pixbuf_get_pixels(image);
-    char *tmp = malloc(n);
+    char *tmp = malloc(n*sizeof(unsigned char));
     for (int j = 0; j < (int) (x/2) ; j++) {
         for (int i = 0; i < y; i++) {
-            memcpy(tmp, data + map(i,j,0,x,n), n);
-            memcpy(data + map(i,j,0,x,n), data + map(i,(x-j),0,x,n), n);
-            memcpy(data + map(i,(x-j),0,x,n), tmp, n);
+            memcpy(tmp, &data[map(i,j,0,rs,n)], n);
+            memcpy(&data[map(i,j,0,rs,n)], &data[map(i,(x-j-1),0,rs,n)], n);
+            memcpy(&data[map(i,(x-j-1),0,rs,n)], tmp, n);
         }
     }
     free(tmp);
@@ -94,9 +96,13 @@ void l_quantize(GdkPixbuf *image, int q) {
     // Find t1 and t2 (min and max)
     int t1 = data[0];
     int t2 = data[0];
-    for (int i = 0; i < x*y*n; i += n) {
-        t1 = (data[i] < t1)? data[i] : t1; // min
-        t2 = (data[i] > t2)? data[i] : t2; // max
+    int idx;
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            idx = map(i,j,0,rs,n);
+            t1 = (data[idx] < t1)? data[idx] : t1; // min
+            t2 = (data[idx] > t2)? data[idx] : t2; // max
+        }
     }
     int int_size = t2 - t1 + 1;
     if (q >= int_size)
@@ -106,12 +112,15 @@ void l_quantize(GdkPixbuf *image, int q) {
     float bin_size = (float) int_size / (float) q;
     int L, bin_id;
     float Li, Lj;
-    for (int i = 0; i < x*y*n; i += n) {
-        bin_id = (data[i] - t1) / bin_size;
-        Li = t1 + bin_id * bin_size;
-        Lj = t1 + (bin_id+1) * bin_size;
-        L = round((double)(Li + Lj)/2);
-        memset(&data[i], L, n);
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            idx = map(i,j,0,rs,n);
+            bin_id = (data[idx] - t1) / bin_size;
+            Li = t1 + bin_id * bin_size;
+            Lj = t1 + (bin_id+1) * bin_size;
+            L = round((double)(Li + Lj)/2);
+            memset(&data[idx], L, n);
+        }
     }
 }
 
