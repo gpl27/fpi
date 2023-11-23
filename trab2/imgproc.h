@@ -13,10 +13,10 @@ void contrast(GdkPixbuf *image, double c);
 GdkPixbuf *rotate_right90(GdkPixbuf *image);
 GdkPixbuf *rotate_left90(GdkPixbuf *image);
 GdkPixbuf *zoom_in(GdkPixbuf *image);
-
 GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy);
+void calculate_histogram(GdkPixbuf *image, unsigned char *hist); // NEEDS TESTING
+
 void convolute(GdkPixbuf *image, double **kernel);
-void calculate_histogram(GdkPixbuf *image, unsigned char *hist);
 
 
 #ifdef IMGPROC_IMPLEMENTATION
@@ -292,8 +292,66 @@ GdkPixbuf *zoom_in(GdkPixbuf *image) {
 }
 
 GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    int xn = ceil((double)x/(double)sx);
+    int yn = ceil((double)y/(double)sy);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+    GdkPixbuf *nimage = gdk_pixbuf_new(gdk_pixbuf_get_colorspace(image), gdk_pixbuf_get_has_alpha(image), 8, xn, yn);
+    unsigned char *ndata = gdk_pixbuf_get_pixels(nimage);
+    int nrs = gdk_pixbuf_get_rowstride(nimage);
 
-    return image;
+
+    int idx, idy;
+    int sum = 0;
+    int avg = 0;
+    int npixels = sx*sy;
+    // For every pixel and channel in the new image
+    for (int i = 0; i < yn; i++) {
+        for (int j = 0; j < xn; j++) {
+            for (int k = 0; k < n; k++) {
+                sum = 0;
+                // Iterate through the sub sx by sy pixels in the original image
+                for (int l = 0; l < sy; l++) {
+                    for (int m = 0; m < sx; m++) {
+                        idx = (j*sx) + m;
+                        idx = (idx < x)? idx : x - 1;
+                        idy = (i*sy) + l;
+                        idy = (idy < y)? idy : y - 1;
+                        sum += data[map(idy,idx,k,rs,n)];
+                    }
+                }
+                avg = (int)sum/npixels;
+                ndata[map(i,j,k,nrs,n)] = (unsigned char)avg;
+            }
+        }
+    }
+
+    g_object_unref(image);
+    return nimage;
+}
+
+// Assumes hist is already allocated and that image is grayscale
+void calculate_histogram(GdkPixbuf *image, unsigned char *hist) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+
+    // Resets hist to zero
+    memset(hist, 0, 256);
+
+    // Pixel counting
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            hist[data[map(i,j,0,rs,n)]]++;
+        }
+    }
 }
 
 #endif

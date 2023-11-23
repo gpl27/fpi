@@ -231,7 +231,8 @@ void zout_button_click(GtkWidget *widget, AppData *metadata) {
         g_print("No image loaded\n");
         return;
     }
-    int sx, sy;
+    int sx = 2;
+    int sy = 2;
     metadata->output_img.pixbuf = zoom_out(metadata->output_img.pixbuf, sx, sy);
     place_image_outwindow(metadata);
 }
@@ -304,7 +305,8 @@ int main(int argc, char **argv) {
     AppData metadata;
     metadata.original_img.pixbuf = NULL;
     metadata.output_img.pixbuf = NULL;
-    // metadata.image.hist = malloc(sizeof(unsigned char)*256);
+    metadata.original_img.hist = malloc(sizeof(unsigned char)*256);
+    metadata.output_img.hist = malloc(sizeof(unsigned char)*256);
 
     app = gtk_application_new("dev.gpl27.fpi.trab1", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), &metadata);
@@ -312,7 +314,8 @@ int main(int argc, char **argv) {
     g_object_unref(app);
 
     // Destroy application state
-    // free(metadata.image.hist);
+    free(metadata.original_img.hist);
+    free(metadata.output_img.hist);
 
     return status;
 }
