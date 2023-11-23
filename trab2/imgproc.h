@@ -15,8 +15,7 @@ GdkPixbuf *rotate_left90(GdkPixbuf *image);
 GdkPixbuf *zoom_in(GdkPixbuf *image);
 GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy);
 void calculate_histogram(GdkPixbuf *image, unsigned char *hist); // NEEDS TESTING
-
-void convolute(GdkPixbuf *image, double **kernel);
+void convolute(GdkPixbuf *image, double kernel[3][3]); // Could use more tests
 
 
 #ifdef IMGPROC_IMPLEMENTATION
@@ -352,6 +351,40 @@ void calculate_histogram(GdkPixbuf *image, unsigned char *hist) {
             hist[data[map(i,j,0,rs,n)]]++;
         }
     }
+}
+
+// Assumes kernel is a 3x3 matrix
+void convolute(GdkPixbuf *image, double kernel[3][3]) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+
+    // Create temporary copy of image
+    GdkPixbuf *imagecpy = gdk_pixbuf_copy(image);
+    unsigned char *datacpy = gdk_pixbuf_get_pixels(imagecpy);
+    int nrs = gdk_pixbuf_get_rowstride(imagecpy);
+
+    double sum;
+    for (int i = 1; i < y-1; i++) {
+        for (int j = 1; j < x-1; j++) {
+            for (int k = 0; k < n; k++) {
+                sum = 0;
+                for (int l = 0; l < 3; l++) {
+                    for (int m = 0; m < 3; m++) {
+                        sum += datacpy[map((i-1+l),(j-1+m),k,nrs,n)]*kernel[2-l][2-m];
+                    }
+                }
+                sum = (sum < 0)? 0 : sum;
+                sum = (sum > 255)? 255 : sum;
+                data[map(i,j,k,rs,n)] = (unsigned char) sum;
+            }
+        }
+    }
+
+    g_object_unref(imagecpy);
 }
 
 #endif

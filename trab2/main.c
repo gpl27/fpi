@@ -237,6 +237,16 @@ void zout_button_click(GtkWidget *widget, AppData *metadata) {
     place_image_outwindow(metadata);
 }
 
+void gauss_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double kernel[3][3] = {0.0625, 0.125, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.125, 0.0625};
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
+}
+
 static void activate(GtkApplication *app, AppData *metadata) {
 
     GtkWidget *tool_window, *src_window, *out_window;
@@ -245,7 +255,7 @@ static void activate(GtkApplication *app, AppData *metadata) {
               *neg_button, *q_amount, *q_button,
               *b_amount, *b_button, *c_amount,
               *c_button, *rotr_button, *rotl_button,
-              *zin_button, *zout_button;
+              *zin_button, *zout_button, *gauss_button;
     GtkBuilder *builder = gtk_builder_new_from_file("main.ui");
     tool_window = GTK_WIDGET(gtk_builder_get_object(builder, "tools"));
     src_window = GTK_WIDGET(gtk_builder_get_object(builder, "source"));
@@ -267,6 +277,7 @@ static void activate(GtkApplication *app, AppData *metadata) {
     rotl_button = GTK_WIDGET(gtk_builder_get_object(builder, "rotl-button"));
     zin_button = GTK_WIDGET(gtk_builder_get_object(builder, "zin-button"));
     zout_button = GTK_WIDGET(gtk_builder_get_object(builder, "zout-button"));
+    gauss_button = GTK_WIDGET(gtk_builder_get_object(builder, "gauss-button"));
 
     gtk_window_set_application(GTK_WINDOW(tool_window), app);
 
@@ -290,6 +301,7 @@ static void activate(GtkApplication *app, AppData *metadata) {
     g_signal_connect(rotl_button, "clicked", G_CALLBACK(rotl_button_click), metadata);
     g_signal_connect(zin_button, "clicked", G_CALLBACK(zin_button_click), metadata);
     g_signal_connect(zout_button, "clicked", G_CALLBACK(zout_button_click), metadata);
+    g_signal_connect(gauss_button, "clicked", G_CALLBACK(gauss_button_click), metadata);
 
 
     gtk_widget_show(tool_window);
