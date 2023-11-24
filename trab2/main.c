@@ -247,6 +247,63 @@ void gauss_button_click(GtkWidget *widget, AppData *metadata) {
     place_image_outwindow(metadata);
 }
 
+void lapl_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double kernel[3][3] = {0, -1, 0, -1, 4, -1, 0, -1, 0};
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
+}
+
+void hpgen_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double kernel[3][3] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
+}
+
+void prex_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double kernel[3][3] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
+}
+void prey_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double kernel[3][3] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
+}
+void sobx_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double kernel[3][3] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
+}
+void soby_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    double kernel[3][3] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
+}
+
 static void activate(GtkApplication *app, AppData *metadata) {
 
     GtkWidget *tool_window, *src_window, *out_window;
@@ -255,7 +312,9 @@ static void activate(GtkApplication *app, AppData *metadata) {
               *neg_button, *q_amount, *q_button,
               *b_amount, *b_button, *c_amount,
               *c_button, *rotr_button, *rotl_button,
-              *zin_button, *zout_button, *gauss_button;
+              *zin_button, *zout_button, *gauss_button,
+              *lapl_button, *hpgen_button, *prex_button,
+              *prey_button, *sobx_button, *soby_button;
     GtkBuilder *builder = gtk_builder_new_from_file("main.ui");
     tool_window = GTK_WIDGET(gtk_builder_get_object(builder, "tools"));
     src_window = GTK_WIDGET(gtk_builder_get_object(builder, "source"));
@@ -278,6 +337,12 @@ static void activate(GtkApplication *app, AppData *metadata) {
     zin_button = GTK_WIDGET(gtk_builder_get_object(builder, "zin-button"));
     zout_button = GTK_WIDGET(gtk_builder_get_object(builder, "zout-button"));
     gauss_button = GTK_WIDGET(gtk_builder_get_object(builder, "gauss-button"));
+    lapl_button = GTK_WIDGET(gtk_builder_get_object(builder, "lapl-button"));
+    hpgen_button = GTK_WIDGET(gtk_builder_get_object(builder, "hpgen-button"));
+    prex_button = GTK_WIDGET(gtk_builder_get_object(builder, "prex-button"));
+    prey_button = GTK_WIDGET(gtk_builder_get_object(builder, "prey-button"));
+    sobx_button = GTK_WIDGET(gtk_builder_get_object(builder, "sobx-button"));
+    soby_button = GTK_WIDGET(gtk_builder_get_object(builder, "soby-button"));
 
     gtk_window_set_application(GTK_WINDOW(tool_window), app);
 
@@ -302,6 +367,12 @@ static void activate(GtkApplication *app, AppData *metadata) {
     g_signal_connect(zin_button, "clicked", G_CALLBACK(zin_button_click), metadata);
     g_signal_connect(zout_button, "clicked", G_CALLBACK(zout_button_click), metadata);
     g_signal_connect(gauss_button, "clicked", G_CALLBACK(gauss_button_click), metadata);
+    g_signal_connect(lapl_button, "clicked", G_CALLBACK(lapl_button_click), metadata);
+    g_signal_connect(hpgen_button, "clicked", G_CALLBACK(hpgen_button_click), metadata);
+    g_signal_connect(prex_button, "clicked", G_CALLBACK(prex_button_click), metadata);
+    g_signal_connect(prey_button, "clicked", G_CALLBACK(prey_button_click), metadata);
+    g_signal_connect(sobx_button, "clicked", G_CALLBACK(sobx_button_click), metadata);
+    g_signal_connect(soby_button, "clicked", G_CALLBACK(soby_button_click), metadata);
 
 
     gtk_widget_show(tool_window);
