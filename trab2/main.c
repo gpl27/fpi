@@ -8,19 +8,21 @@
 
 typedef struct {
     GdkPixbuf *pixbuf;
-    unsigned int *hist;
+    unsigned long *hist;
 } Image;
 
 typedef struct {
     GtkWidget *src_window;
     Image original_img;
+    GtkWidget *img_to_match_widget;
+    GtkWidget *hist_to_match_widget;
     Image img_to_match;
     GtkWidget *out_window;
     Image output_img;
     GtkWidget *q_amount;
     GtkWidget *b_amount;
     GtkWidget *c_amount;
-    GtkWidget **filter;
+    GtkWidget *kernel_grid;
 } AppData;
 
 void load_image(char *filename, AppData *metadata) {
@@ -67,8 +69,11 @@ void place_image_srcwindow(AppData *metadata) {
 }
 
 void place_img_to_match(AppData *metadata) {
-    GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->original_img.pixbuf);
-
+    calculate_histogram(metadata->img_to_match.pixbuf, metadata->img_to_match.hist);
+    GdkPixbuf *hist = create_histogram_img(metadata->img_to_match.hist);
+    gtk_picture_set_pixbuf(GTK_PICTURE(metadata->img_to_match_widget), metadata->img_to_match.pixbuf);
+    gtk_picture_set_pixbuf(GTK_PICTURE(metadata->hist_to_match_widget), hist);
+    // unref hist?
 }
 
 void open_file_dialog_response(GtkDialog *dialog, int response, AppData *metadata) {
@@ -336,12 +341,37 @@ void soby_button_click(GtkWidget *widget, AppData *metadata) {
 }
 
 void hshow_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    calculate_histogram(metadata->original_img.pixbuf, metadata->original_img.hist);
+    calculate_histogram(metadata->output_img.pixbuf, metadata->output_img.hist);
 
+    GdkPixbuf *orig_hist = create_histogram_img(metadata->original_img.hist);
+    GtkWidget *orig_hist_pic = gtk_picture_new_for_pixbuf(orig_hist);
+    GtkWidget *orig_hist_win = gtk_window_new();
+    gtk_window_set_child(GTK_WINDOW(orig_hist_win), orig_hist_pic);
+    gtk_window_set_title(GTK_WINDOW(orig_hist_win), "Source Histogram");
+    gtk_window_set_default_size(GTK_WINDOW(orig_hist_win), 300, 256);
+
+    GdkPixbuf *out_hist = create_histogram_img(metadata->output_img.hist);
+    GtkWidget *out_hist_pic = gtk_picture_new_for_pixbuf(out_hist);
+    GtkWidget *out_hist_win = gtk_window_new();
+    gtk_window_set_child(GTK_WINDOW(out_hist_win), out_hist_pic);
+    gtk_window_set_title(GTK_WINDOW(out_hist_win), "Output Histogram");
+    gtk_window_set_default_size(GTK_WINDOW(out_hist_win), 300, 256);
+
+
+    gtk_widget_show(orig_hist_win);
+    gtk_widget_show(out_hist_win);
+    // unref pixbufs on window destroy (create callback)
 }
 
 void hequ_button_click(GtkWidget *widget, AppData *metadata) {
 
 }
+
 void hmatchsel_button_click(GtkWidget *widget, AppData *metadata) {
     GtkWidget *dialog;
     dialog = gtk_file_chooser_dialog_new ("Open File",
@@ -358,7 +388,26 @@ void hmatchsel_button_click(GtkWidget *widget, AppData *metadata) {
     gtk_window_present(GTK_WINDOW (dialog));
 
 }
+
 void hmatch_button_click(GtkWidget *widget, AppData *metadata) {
+
+}
+
+void conv_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img.pixbuf == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    GtkWidget *entry;
+    double kernel[3][3];
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            entry = gtk_grid_get_child_at(GTK_GRID(metadata->kernel_grid), j, i);
+            kernel[i][j] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(entry));
+        }
+    }
+    convolute(metadata->output_img.pixbuf, kernel);
+    place_image_outwindow(metadata);
 
 }
 
@@ -374,7 +423,8 @@ static void activate(GtkApplication *app, AppData *metadata) {
               *lapl_button, *hpgen_button, *prex_button,
               *prey_button, *sobx_button, *soby_button,
               *hshow_button, *hequ_button, *hmatchsel_button,
-              *hmatch_button;
+              *hmatch_button, *img_to_match, *hist_to_match,
+              *kernel_grid, *conv_button;
     GtkBuilder *builder = gtk_builder_new_from_file("main.ui");
     tool_window = GTK_WIDGET(gtk_builder_get_object(builder, "tools"));
     src_window = GTK_WIDGET(gtk_builder_get_object(builder, "source"));
@@ -407,11 +457,18 @@ static void activate(GtkApplication *app, AppData *metadata) {
     hequ_button = GTK_WIDGET(gtk_builder_get_object(builder, "hequ-button"));
     hmatchsel_button = GTK_WIDGET(gtk_builder_get_object(builder, "hmatchsel-button"));
     hmatch_button = GTK_WIDGET(gtk_builder_get_object(builder, "hmatch-button"));
+    img_to_match = GTK_WIDGET(gtk_builder_get_object(builder, "img-to-match"));
+    hist_to_match = GTK_WIDGET(gtk_builder_get_object(builder, "hist-to-match"));
+    kernel_grid = GTK_WIDGET(gtk_builder_get_object(builder, "kernel-grid"));
+    conv_button = GTK_WIDGET(gtk_builder_get_object(builder, "conv-button"));
 
     gtk_window_set_application(GTK_WINDOW(tool_window), app);
 
     metadata->src_window = src_window;
     metadata->out_window = out_window;
+    metadata->img_to_match_widget = img_to_match;
+    metadata->hist_to_match_widget = hist_to_match;
+    metadata->kernel_grid = kernel_grid;
     metadata->q_amount = q_amount;
     metadata->b_amount = b_amount;
     metadata->c_amount = c_amount;
@@ -441,6 +498,7 @@ static void activate(GtkApplication *app, AppData *metadata) {
     g_signal_connect(hequ_button, "clicked", G_CALLBACK(hequ_button_click), metadata);
     g_signal_connect(hmatchsel_button, "clicked", G_CALLBACK(hmatchsel_button_click), metadata);
     g_signal_connect(hmatch_button, "clicked", G_CALLBACK(hmatch_button_click), metadata);
+    g_signal_connect(conv_button, "clicked", G_CALLBACK(conv_button_click), metadata);
 
 
     gtk_widget_show(tool_window);
@@ -457,9 +515,9 @@ int main(int argc, char **argv) {
     metadata.original_img.pixbuf = NULL;
     metadata.output_img.pixbuf = NULL;
     metadata.img_to_match.pixbuf = NULL;
-    metadata.original_img.hist = malloc(sizeof(int)*256);
-    metadata.output_img.hist = malloc(sizeof(int)*256);
-    metadata.img_to_match.hist = malloc(sizeof(int)*256);
+    metadata.original_img.hist = malloc(sizeof(long)*256);
+    metadata.output_img.hist = malloc(sizeof(long)*256);
+    metadata.img_to_match.hist = malloc(sizeof(long)*256);
 
     app = gtk_application_new("dev.gpl27.fpi.trab1", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), &metadata);

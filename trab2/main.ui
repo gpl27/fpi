@@ -4,7 +4,7 @@
     <!-- Tool Window -->
     <object class="GtkWindow" id="tools">
         <property name="title">Tools</property>
-        <property name="resizable">FALSE</property>
+        <!-- <property name="resizable">FALSE</property> -->
         <!-- <property name="default-width">200</property> -->
         <property name="default-height">700</property>
         <child>
@@ -545,12 +545,20 @@
                                             </object>
                                         </child>
                                         <child>
-                                            <object class="GtkImage" id="img-to-match">
+                                            <object class="GtkPicture" id="img-to-match">
+                                                <layout>
+                                                    <property name="column">0</property>
+                                                    <property name="row">4</property>
+                                                </layout>
 
                                             </object>
                                         </child>
                                         <child>
-                                            <object class="GtkImage" id="hist-to-match">
+                                            <object class="GtkPicture" id="hist-to-match">
+                                                <layout>
+                                                    <property name="column">0</property>
+                                                    <property name="row">5</property>
+                                                </layout>
 
                                             </object>
                                         </child>

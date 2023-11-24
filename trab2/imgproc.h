@@ -14,9 +14,9 @@ GdkPixbuf *rotate_right90(GdkPixbuf *image);
 GdkPixbuf *rotate_left90(GdkPixbuf *image);
 GdkPixbuf *zoom_in(GdkPixbuf *image);
 GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy);
-void calculate_histogram(GdkPixbuf *image, unsigned int *hist); // NEEDS TESTING
+void calculate_histogram(GdkPixbuf *rimage, unsigned long *hist); // NEEDS TESTING
 void convolute(GdkPixbuf *image, double kernel[3][3]); // Could use more tests
-GdkPixbuf *create_histogram_img(unsigned int *hist); // NEEDS TESTING
+GdkPixbuf *create_histogram_img(unsigned long *hist); // NEEDS TESTING
 
 
 #ifdef IMGPROC_IMPLEMENTATION
@@ -334,15 +334,17 @@ GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy) {
     return nimage;
 }
 
-// Assumes hist is already allocated and that image is grayscale
-void calculate_histogram(GdkPixbuf *image, unsigned int *hist) {
+// Assumes hist is already allocated
+void calculate_histogram(GdkPixbuf *rimage, unsigned long *hist) {
+    GdkPixbuf *image = gdk_pixbuf_copy(rimage);
+    rgb_to_l(image);
     int n = gdk_pixbuf_get_n_channels(image);
     int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
     unsigned char *data = gdk_pixbuf_get_pixels(image);
-    int sum = x*y;
+    unsigned long sum = x*y;
 
     // Resets hist to zero
     memset(hist, 0, 256);
@@ -356,7 +358,10 @@ void calculate_histogram(GdkPixbuf *image, unsigned int *hist) {
 
     // Normalizes histogram to 0-256
     for (int i = 0; i < 256; i++)
-        hist[i] = (hist[i]*256)/sum;
+        hist[i] = round((double)hist[i]*256/sum);
+
+    g_object_unref(image);
+
 }
 
 // Assumes kernel is a 3x3 matrix
@@ -393,20 +398,22 @@ void convolute(GdkPixbuf *image, double kernel[3][3]) {
     g_object_unref(imagecpy);
 }
 
-GdkPixbuf *create_histogram_img(unsigned int *hist) {
+GdkPixbuf *create_histogram_img(unsigned long *hist) {
     int x = 256;
     int y = 256;
     int sum = 0;
-    GdkPixbuf *histogram = gdk_pixbuf_new(NULL, FALSE, 8, x, y);
-    // Gets number of pixels
+    GdkPixbuf *histogram = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, x, y);
+    int rs = gdk_pixbuf_get_rowstride(histogram);
+    int n = gdk_pixbuf_get_n_channels(histogram);
+    unsigned char *data = gdk_pixbuf_get_pixels(histogram);
+    
     for (int i = 0; i < 256; i++) {
-        for (int j = 0; j < 256; j++) {
-            // TODO
-        }
+        memset(&data[map(i,0,0,rs,n)], 200, (256 - hist[i])*n);
     }
 
+    histogram = rotate_right90(histogram);
 
-
+    return histogram;
 }
 
 #endif
