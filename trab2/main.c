@@ -8,7 +8,7 @@
 
 typedef struct {
     GdkPixbuf *pixbuf;
-    unsigned char *hist;
+    unsigned int *hist;
 } Image;
 
 typedef struct {
@@ -41,6 +41,15 @@ void save_image(char *filename, AppData *metadata) {
     gdk_pixbuf_save(metadata->output_img.pixbuf, filename, "jpeg", NULL, NULL);
 }
 
+void load_img_to_match(char *filename, AppData *metadata) {
+    // Unref previous data
+    if (metadata->img_to_match.pixbuf != NULL) {
+        g_object_unref(metadata->img_to_match.pixbuf);
+    }
+    // Load image data
+    metadata->img_to_match.pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
+}
+
 void place_image_outwindow(AppData *metadata) {
     GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->output_img.pixbuf);
     int width = gdk_pixbuf_get_width(metadata->output_img.pixbuf);
@@ -55,6 +64,11 @@ void place_image_srcwindow(AppData *metadata) {
     int height = gdk_pixbuf_get_height(metadata->original_img.pixbuf);
     gtk_window_set_default_size(GTK_WINDOW(metadata->src_window), width, height);
     gtk_window_set_child(GTK_WINDOW(metadata->src_window), img);
+}
+
+void place_img_to_match(AppData *metadata) {
+    GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->original_img.pixbuf);
+
 }
 
 void open_file_dialog_response(GtkDialog *dialog, int response, AppData *metadata) {
@@ -78,6 +92,20 @@ void save_file_dialog_response(GtkDialog *dialog, int response, AppData *metadat
         GFile *file = gtk_file_chooser_get_file (chooser);
         char *filename = g_file_get_path(file);
         save_image(filename, metadata);
+        free(filename);
+        g_object_unref(file);
+    }
+
+    gtk_window_destroy (GTK_WINDOW (dialog));
+}
+
+void hmatchsel_dialog_response(GtkDialog *dialog, int response, AppData *metadata) {
+    if (response == GTK_RESPONSE_ACCEPT) {
+        GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
+        GFile *file = gtk_file_chooser_get_file (chooser);
+        char *filename = g_file_get_path(file);
+        load_img_to_match(filename, metadata);
+        place_img_to_match(metadata);
         free(filename);
         g_object_unref(file);
     }
@@ -276,6 +304,7 @@ void prex_button_click(GtkWidget *widget, AppData *metadata) {
     convolute(metadata->output_img.pixbuf, kernel);
     place_image_outwindow(metadata);
 }
+
 void prey_button_click(GtkWidget *widget, AppData *metadata) {
     if (metadata->output_img.pixbuf == NULL) {
         g_print("No image loaded\n");
@@ -285,6 +314,7 @@ void prey_button_click(GtkWidget *widget, AppData *metadata) {
     convolute(metadata->output_img.pixbuf, kernel);
     place_image_outwindow(metadata);
 }
+
 void sobx_button_click(GtkWidget *widget, AppData *metadata) {
     if (metadata->output_img.pixbuf == NULL) {
         g_print("No image loaded\n");
@@ -294,6 +324,7 @@ void sobx_button_click(GtkWidget *widget, AppData *metadata) {
     convolute(metadata->output_img.pixbuf, kernel);
     place_image_outwindow(metadata);
 }
+
 void soby_button_click(GtkWidget *widget, AppData *metadata) {
     if (metadata->output_img.pixbuf == NULL) {
         g_print("No image loaded\n");
@@ -302,6 +333,33 @@ void soby_button_click(GtkWidget *widget, AppData *metadata) {
     double kernel[3][3] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
     convolute(metadata->output_img.pixbuf, kernel);
     place_image_outwindow(metadata);
+}
+
+void hshow_button_click(GtkWidget *widget, AppData *metadata) {
+
+}
+
+void hequ_button_click(GtkWidget *widget, AppData *metadata) {
+
+}
+void hmatchsel_button_click(GtkWidget *widget, AppData *metadata) {
+    GtkWidget *dialog;
+    dialog = gtk_file_chooser_dialog_new ("Open File",
+                                          GTK_WINDOW(metadata->src_window),
+                                          GTK_FILE_CHOOSER_ACTION_OPEN,
+                                          "_Cancel",
+                                          GTK_RESPONSE_CANCEL,
+                                          "_Open",
+                                          GTK_RESPONSE_ACCEPT,
+                                          NULL);
+    g_signal_connect(dialog, "response",
+                     G_CALLBACK (hmatchsel_dialog_response),
+                     metadata);
+    gtk_window_present(GTK_WINDOW (dialog));
+
+}
+void hmatch_button_click(GtkWidget *widget, AppData *metadata) {
+
 }
 
 static void activate(GtkApplication *app, AppData *metadata) {
@@ -314,7 +372,9 @@ static void activate(GtkApplication *app, AppData *metadata) {
               *c_button, *rotr_button, *rotl_button,
               *zin_button, *zout_button, *gauss_button,
               *lapl_button, *hpgen_button, *prex_button,
-              *prey_button, *sobx_button, *soby_button;
+              *prey_button, *sobx_button, *soby_button,
+              *hshow_button, *hequ_button, *hmatchsel_button,
+              *hmatch_button;
     GtkBuilder *builder = gtk_builder_new_from_file("main.ui");
     tool_window = GTK_WIDGET(gtk_builder_get_object(builder, "tools"));
     src_window = GTK_WIDGET(gtk_builder_get_object(builder, "source"));
@@ -343,6 +403,10 @@ static void activate(GtkApplication *app, AppData *metadata) {
     prey_button = GTK_WIDGET(gtk_builder_get_object(builder, "prey-button"));
     sobx_button = GTK_WIDGET(gtk_builder_get_object(builder, "sobx-button"));
     soby_button = GTK_WIDGET(gtk_builder_get_object(builder, "soby-button"));
+    hshow_button = GTK_WIDGET(gtk_builder_get_object(builder, "hshow-button"));
+    hequ_button = GTK_WIDGET(gtk_builder_get_object(builder, "hequ-button"));
+    hmatchsel_button = GTK_WIDGET(gtk_builder_get_object(builder, "hmatchsel-button"));
+    hmatch_button = GTK_WIDGET(gtk_builder_get_object(builder, "hmatch-button"));
 
     gtk_window_set_application(GTK_WINDOW(tool_window), app);
 
@@ -373,6 +437,10 @@ static void activate(GtkApplication *app, AppData *metadata) {
     g_signal_connect(prey_button, "clicked", G_CALLBACK(prey_button_click), metadata);
     g_signal_connect(sobx_button, "clicked", G_CALLBACK(sobx_button_click), metadata);
     g_signal_connect(soby_button, "clicked", G_CALLBACK(soby_button_click), metadata);
+    g_signal_connect(hshow_button, "clicked", G_CALLBACK(hshow_button_click), metadata);
+    g_signal_connect(hequ_button, "clicked", G_CALLBACK(hequ_button_click), metadata);
+    g_signal_connect(hmatchsel_button, "clicked", G_CALLBACK(hmatchsel_button_click), metadata);
+    g_signal_connect(hmatch_button, "clicked", G_CALLBACK(hmatch_button_click), metadata);
 
 
     gtk_widget_show(tool_window);
@@ -388,8 +456,10 @@ int main(int argc, char **argv) {
     AppData metadata;
     metadata.original_img.pixbuf = NULL;
     metadata.output_img.pixbuf = NULL;
-    metadata.original_img.hist = malloc(sizeof(unsigned char)*256);
-    metadata.output_img.hist = malloc(sizeof(unsigned char)*256);
+    metadata.img_to_match.pixbuf = NULL;
+    metadata.original_img.hist = malloc(sizeof(int)*256);
+    metadata.output_img.hist = malloc(sizeof(int)*256);
+    metadata.img_to_match.hist = malloc(sizeof(int)*256);
 
     app = gtk_application_new("dev.gpl27.fpi.trab1", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), &metadata);
@@ -399,6 +469,7 @@ int main(int argc, char **argv) {
     // Destroy application state
     free(metadata.original_img.hist);
     free(metadata.output_img.hist);
+    free(metadata.img_to_match.hist);
 
     return status;
 }

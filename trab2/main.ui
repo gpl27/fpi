@@ -545,6 +545,16 @@
                                             </object>
                                         </child>
                                         <child>
+                                            <object class="GtkImage" id="img-to-match">
+
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkImage" id="hist-to-match">
+
+                                            </object>
+                                        </child>
+                                        <child>
                                             <object class="GtkButton" id="hmatch-button">
                                                 <property name="label">Histogram Match</property>
                                                 <layout>

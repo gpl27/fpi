@@ -14,8 +14,9 @@ GdkPixbuf *rotate_right90(GdkPixbuf *image);
 GdkPixbuf *rotate_left90(GdkPixbuf *image);
 GdkPixbuf *zoom_in(GdkPixbuf *image);
 GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy);
-void calculate_histogram(GdkPixbuf *image, unsigned char *hist); // NEEDS TESTING
+void calculate_histogram(GdkPixbuf *image, unsigned int *hist); // NEEDS TESTING
 void convolute(GdkPixbuf *image, double kernel[3][3]); // Could use more tests
+GdkPixbuf *create_histogram_img(unsigned int *hist); // NEEDS TESTING
 
 
 #ifdef IMGPROC_IMPLEMENTATION
@@ -334,13 +335,14 @@ GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy) {
 }
 
 // Assumes hist is already allocated and that image is grayscale
-void calculate_histogram(GdkPixbuf *image, unsigned char *hist) {
+void calculate_histogram(GdkPixbuf *image, unsigned int *hist) {
     int n = gdk_pixbuf_get_n_channels(image);
     int rs = gdk_pixbuf_get_rowstride(image);
     g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
     int x = gdk_pixbuf_get_width(image);
     int y = gdk_pixbuf_get_height(image);
     unsigned char *data = gdk_pixbuf_get_pixels(image);
+    int sum = x*y;
 
     // Resets hist to zero
     memset(hist, 0, 256);
@@ -351,6 +353,10 @@ void calculate_histogram(GdkPixbuf *image, unsigned char *hist) {
             hist[data[map(i,j,0,rs,n)]]++;
         }
     }
+
+    // Normalizes histogram to 0-256
+    for (int i = 0; i < 256; i++)
+        hist[i] = (hist[i]*256)/sum;
 }
 
 // Assumes kernel is a 3x3 matrix
@@ -385,6 +391,22 @@ void convolute(GdkPixbuf *image, double kernel[3][3]) {
     }
 
     g_object_unref(imagecpy);
+}
+
+GdkPixbuf *create_histogram_img(unsigned int *hist) {
+    int x = 256;
+    int y = 256;
+    int sum = 0;
+    GdkPixbuf *histogram = gdk_pixbuf_new(NULL, FALSE, 8, x, y);
+    // Gets number of pixels
+    for (int i = 0; i < 256; i++) {
+        for (int j = 0; j < 256; j++) {
+            // TODO
+        }
+    }
+
+
+
 }
 
 #endif
