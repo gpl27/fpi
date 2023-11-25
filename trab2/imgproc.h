@@ -475,6 +475,11 @@ void histogram_matching(GdkPixbuf *fimage, GdkPixbuf *gimage) {
     unsigned long ghistogram[256];
     unsigned long gcum_histogram[256];
     double galpha = 255.0 / (double)(gx*gy);
+    unsigned long gcum_inv[256];
+    unsigned long match_histogram[256];
+    unsigned long shade_to_find;
+    unsigned long closest_shade;
+    int diff;
 
     for (int k = 0; k < fn; k++) {
         histogram_calculation(fimage, fhistogram, k);
@@ -489,9 +494,14 @@ void histogram_matching(GdkPixbuf *fimage, GdkPixbuf *gimage) {
         for (int l = 1; l < 256; l++) 
             gcum_histogram[l] = gcum_histogram[l-1] + (galpha * ghistogram[l]);
 
+        // Create inverse gcum
+        for (int l = 0; l < 256; l++) {
+            gcum_inv[gcum_histogram[l]] = l;
+        }
+
         for (int i = 0; i < fy; i++) {
             for (int j = 0; j < fx; j++) {
-                fdata[map(i,j,k,frs,fn)] = gcum_histogram[fcum_histogram[fdata[map(i,j,k,frs,fn)]]];
+                fdata[map(i,j,k,frs,fn)] = gcum_inv[fcum_histogram[fdata[map(i,j,k,frs,fn)]]];
             }
         }
     }
