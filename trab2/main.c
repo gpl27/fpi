@@ -1,3 +1,9 @@
+/*!
+ * TODO:
+ * change Image struct to be just the Pixbuf*
+ * see where histogram must be calculated and grayscale copies of
+ * images must be made
+ */
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,18 +13,13 @@
 
 
 typedef struct {
-    GdkPixbuf *pixbuf;
-    unsigned long *hist;
-} Image;
-
-typedef struct {
     GtkWidget *src_window;
-    Image original_img;
+    GdkPixbuf *original_img;
     GtkWidget *img_to_match_widget;
     GtkWidget *hist_to_match_widget;
-    Image img_to_match;
+    GdkPixbuf *img_to_match;
     GtkWidget *out_window;
-    Image output_img;
+    GdkPixbuf *output_img;
     GtkWidget *q_amount;
     GtkWidget *b_amount;
     GtkWidget *c_amount;
@@ -27,51 +28,51 @@ typedef struct {
 
 void load_image(char *filename, AppData *metadata) {
     // Unref previous data
-    if (metadata->original_img.pixbuf != NULL) {
-        g_object_unref(metadata->original_img.pixbuf);
+    if (metadata->original_img != NULL) {
+        g_object_unref(metadata->original_img);
     }
-    if (metadata->output_img.pixbuf != NULL) {
-        g_object_unref(metadata->output_img.pixbuf);
+    if (metadata->output_img != NULL) {
+        g_object_unref(metadata->output_img);
     }
 
     // Load image data
-    metadata->original_img.pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
-    metadata->output_img.pixbuf = gdk_pixbuf_copy(metadata->original_img.pixbuf);
+    metadata->original_img = gdk_pixbuf_new_from_file(filename, NULL);
+    metadata->output_img = gdk_pixbuf_copy(metadata->original_img);
 }
 
 void save_image(char *filename, AppData *metadata) {
-    gdk_pixbuf_save(metadata->output_img.pixbuf, filename, "jpeg", NULL, NULL);
+    gdk_pixbuf_save(metadata->output_img, filename, "jpeg", NULL, NULL);
 }
 
 void load_img_to_match(char *filename, AppData *metadata) {
     // Unref previous data
-    if (metadata->img_to_match.pixbuf != NULL) {
-        g_object_unref(metadata->img_to_match.pixbuf);
+    if (metadata->img_to_match != NULL) {
+        g_object_unref(metadata->img_to_match);
     }
     // Load image data
-    metadata->img_to_match.pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
+    metadata->img_to_match = gdk_pixbuf_new_from_file(filename, NULL);
+    rgb_to_l(metadata->img_to_match);
 }
 
 void place_image_outwindow(AppData *metadata) {
-    GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->output_img.pixbuf);
-    int width = gdk_pixbuf_get_width(metadata->output_img.pixbuf);
-    int height = gdk_pixbuf_get_height(metadata->output_img.pixbuf);
+    GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->output_img);
+    int width = gdk_pixbuf_get_width(metadata->output_img);
+    int height = gdk_pixbuf_get_height(metadata->output_img);
     gtk_window_set_default_size(GTK_WINDOW(metadata->out_window), width, height);
     gtk_window_set_child(GTK_WINDOW(metadata->out_window), img);
 }
 
 void place_image_srcwindow(AppData *metadata) {
-    GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->original_img.pixbuf);
-    int width = gdk_pixbuf_get_width(metadata->original_img.pixbuf);
-    int height = gdk_pixbuf_get_height(metadata->original_img.pixbuf);
+    GtkWidget *img = gtk_picture_new_for_pixbuf(metadata->original_img);
+    int width = gdk_pixbuf_get_width(metadata->original_img);
+    int height = gdk_pixbuf_get_height(metadata->original_img);
     gtk_window_set_default_size(GTK_WINDOW(metadata->src_window), width, height);
     gtk_window_set_child(GTK_WINDOW(metadata->src_window), img);
 }
 
 void place_img_to_match(AppData *metadata) {
-    calculate_histogram(metadata->img_to_match.pixbuf, metadata->img_to_match.hist);
-    GdkPixbuf *hist = create_histogram_img(metadata->img_to_match.hist);
-    gtk_picture_set_pixbuf(GTK_PICTURE(metadata->img_to_match_widget), metadata->img_to_match.pixbuf);
+    GdkPixbuf *hist = create_histogram_img(metadata->img_to_match, 0);
+    gtk_picture_set_pixbuf(GTK_PICTURE(metadata->img_to_match_widget), metadata->img_to_match);
     gtk_picture_set_pixbuf(GTK_PICTURE(metadata->hist_to_match_widget), hist);
     // unref hist?
 }
@@ -135,17 +136,17 @@ void load_button_click(GtkWidget* widget, AppData *metadata) {
 }
 
 void reset_button_click(GtkWidget* widget, AppData *metadata) {
-    if (metadata->original_img.pixbuf == NULL) {
+    if (metadata->original_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    g_object_unref(metadata->output_img.pixbuf);
-    metadata->output_img.pixbuf = gdk_pixbuf_copy(metadata->original_img.pixbuf);
+    g_object_unref(metadata->output_img);
+    metadata->output_img = gdk_pixbuf_copy(metadata->original_img);
     place_image_outwindow(metadata);
 }
 
 void save_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
@@ -166,196 +167,194 @@ void save_button_click(GtkWidget *widget, AppData *metadata) {
 }
 
 void hflip_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    hflip(metadata->output_img.pixbuf);
+    hflip(metadata->output_img);
     place_image_outwindow(metadata);
 }
 
 void vflip_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    vflip(metadata->output_img.pixbuf);
+    vflip(metadata->output_img);
     place_image_outwindow(metadata);
 }
 
 void gray_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    rgb_to_l(metadata->output_img.pixbuf);
+    rgb_to_l(metadata->output_img);
     place_image_outwindow(metadata);
 }
 
 void neg_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    negative(metadata->output_img.pixbuf);
+    negative(metadata->output_img);
     place_image_outwindow(metadata);
 }
 
 void q_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    rgb_to_l(metadata->output_img.pixbuf);
+    rgb_to_l(metadata->output_img);
     int q = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(metadata->q_amount));
-    l_quantize(metadata->output_img.pixbuf, q);
+    l_quantize(metadata->output_img, q);
     place_image_outwindow(metadata);
 }
 
 void b_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     int b = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(metadata->b_amount));
-    brightness(metadata->output_img.pixbuf, b);
+    brightness(metadata->output_img, b);
     place_image_outwindow(metadata);
 }
 
 void c_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double c = gtk_spin_button_get_value(GTK_SPIN_BUTTON(metadata->c_amount));
-    contrast(metadata->output_img.pixbuf, c);
+    contrast(metadata->output_img, c);
     place_image_outwindow(metadata);
 }
 
 void rotr_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    metadata->output_img.pixbuf = rotate_right90(metadata->output_img.pixbuf);
+    metadata->output_img = rotate_right90(metadata->output_img);
     place_image_outwindow(metadata);
 }
 
 void rotl_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    metadata->output_img.pixbuf = rotate_left90(metadata->output_img.pixbuf);
+    metadata->output_img = rotate_left90(metadata->output_img);
     place_image_outwindow(metadata);
 }
 
 void zin_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    metadata->output_img.pixbuf = zoom_in(metadata->output_img.pixbuf);
+    metadata->output_img = zoom_in(metadata->output_img);
     place_image_outwindow(metadata);
 }
 
 void zout_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     int sx = 2;
     int sy = 2;
-    metadata->output_img.pixbuf = zoom_out(metadata->output_img.pixbuf, sx, sy);
+    metadata->output_img = zoom_out(metadata->output_img, sx, sy);
     place_image_outwindow(metadata);
 }
 
 void gauss_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double kernel[3][3] = {0.0625, 0.125, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.125, 0.0625};
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
 void lapl_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double kernel[3][3] = {0, -1, 0, -1, 4, -1, 0, -1, 0};
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
 void hpgen_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double kernel[3][3] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
 void prex_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double kernel[3][3] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
 void prey_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double kernel[3][3] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
 void sobx_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double kernel[3][3] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
 void soby_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
     double kernel[3][3] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
 void hshow_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
-    calculate_histogram(metadata->original_img.pixbuf, metadata->original_img.hist);
-    calculate_histogram(metadata->output_img.pixbuf, metadata->output_img.hist);
 
-    GdkPixbuf *orig_hist = create_histogram_img(metadata->original_img.hist);
+    GdkPixbuf *orig_hist = create_histogram_img(metadata->original_img, 0);
     GtkWidget *orig_hist_pic = gtk_picture_new_for_pixbuf(orig_hist);
     GtkWidget *orig_hist_win = gtk_window_new();
     gtk_window_set_child(GTK_WINDOW(orig_hist_win), orig_hist_pic);
     gtk_window_set_title(GTK_WINDOW(orig_hist_win), "Source Histogram");
     gtk_window_set_default_size(GTK_WINDOW(orig_hist_win), 300, 256);
 
-    GdkPixbuf *out_hist = create_histogram_img(metadata->output_img.hist);
+    GdkPixbuf *out_hist = create_histogram_img(metadata->output_img, 0);
     GtkWidget *out_hist_pic = gtk_picture_new_for_pixbuf(out_hist);
     GtkWidget *out_hist_win = gtk_window_new();
     gtk_window_set_child(GTK_WINDOW(out_hist_win), out_hist_pic);
@@ -369,7 +368,12 @@ void hshow_button_click(GtkWidget *widget, AppData *metadata) {
 }
 
 void hequ_button_click(GtkWidget *widget, AppData *metadata) {
-
+    if (metadata->output_img == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    histogram_equalization(metadata->output_img);
+    place_image_outwindow(metadata);
 }
 
 void hmatchsel_button_click(GtkWidget *widget, AppData *metadata) {
@@ -390,11 +394,17 @@ void hmatchsel_button_click(GtkWidget *widget, AppData *metadata) {
 }
 
 void hmatch_button_click(GtkWidget *widget, AppData *metadata) {
+    if (metadata->output_img == NULL || metadata->img_to_match == NULL) {
+        g_print("No image loaded\n");
+        return;
+    }
+    histogram_matching(metadata->output_img, metadata->img_to_match);
+    place_image_outwindow(metadata);
 
 }
 
 void conv_button_click(GtkWidget *widget, AppData *metadata) {
-    if (metadata->output_img.pixbuf == NULL) {
+    if (metadata->output_img == NULL) {
         g_print("No image loaded\n");
         return;
     }
@@ -406,7 +416,7 @@ void conv_button_click(GtkWidget *widget, AppData *metadata) {
             kernel[i][j] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(entry));
         }
     }
-    convolute(metadata->output_img.pixbuf, kernel);
+    convolute(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 
 }
@@ -512,12 +522,9 @@ int main(int argc, char **argv) {
 
     // Init application state
     AppData metadata;
-    metadata.original_img.pixbuf = NULL;
-    metadata.output_img.pixbuf = NULL;
-    metadata.img_to_match.pixbuf = NULL;
-    metadata.original_img.hist = malloc(sizeof(long)*256);
-    metadata.output_img.hist = malloc(sizeof(long)*256);
-    metadata.img_to_match.hist = malloc(sizeof(long)*256);
+    metadata.original_img = NULL;
+    metadata.output_img = NULL;
+    metadata.img_to_match = NULL;
 
     app = gtk_application_new("dev.gpl27.fpi.trab1", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), &metadata);
@@ -525,9 +532,6 @@ int main(int argc, char **argv) {
     g_object_unref(app);
 
     // Destroy application state
-    free(metadata.original_img.hist);
-    free(metadata.output_img.hist);
-    free(metadata.img_to_match.hist);
 
     return status;
 }

@@ -14,9 +14,12 @@ GdkPixbuf *rotate_right90(GdkPixbuf *image);
 GdkPixbuf *rotate_left90(GdkPixbuf *image);
 GdkPixbuf *zoom_in(GdkPixbuf *image);
 GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy);
-void calculate_histogram(GdkPixbuf *rimage, unsigned long *hist); // NEEDS TESTING
 void convolute(GdkPixbuf *image, double kernel[3][3]); // Could use more tests
-GdkPixbuf *create_histogram_img(unsigned long *hist); // NEEDS TESTING
+
+void histogram_calculation(GdkPixbuf *image, unsigned long *hist, int channel);
+GdkPixbuf *create_histogram_img(GdkPixbuf *image, int channel);
+void histogram_equalization(GdkPixbuf *image);
+void histogram_matching(GdkPixbuf *fimage, GdkPixbuf *gimage);
 
 
 #ifdef IMGPROC_IMPLEMENTATION
@@ -334,35 +337,6 @@ GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy) {
     return nimage;
 }
 
-// Assumes hist is already allocated
-void calculate_histogram(GdkPixbuf *rimage, unsigned long *hist) {
-    GdkPixbuf *image = gdk_pixbuf_copy(rimage);
-    rgb_to_l(image);
-    int n = gdk_pixbuf_get_n_channels(image);
-    int rs = gdk_pixbuf_get_rowstride(image);
-    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
-    int x = gdk_pixbuf_get_width(image);
-    int y = gdk_pixbuf_get_height(image);
-    unsigned char *data = gdk_pixbuf_get_pixels(image);
-    unsigned long sum = x*y;
-
-    // Resets hist to zero
-    memset(hist, 0, 256);
-
-    // Pixel counting
-    for (int i = 0; i < y; i++) {
-        for (int j = 0; j < x; j++) {
-            hist[data[map(i,j,0,rs,n)]]++;
-        }
-    }
-
-    // Normalizes histogram to 0-256
-    for (int i = 0; i < 256; i++)
-        hist[i] = round((double)hist[i]*256/sum);
-
-    g_object_unref(image);
-
-}
 
 // Assumes kernel is a 3x3 matrix
 void convolute(GdkPixbuf *image, double kernel[3][3]) {
@@ -398,22 +372,129 @@ void convolute(GdkPixbuf *image, double kernel[3][3]) {
     g_object_unref(imagecpy);
 }
 
-GdkPixbuf *create_histogram_img(unsigned long *hist) {
-    int x = 256;
-    int y = 256;
-    int sum = 0;
-    GdkPixbuf *histogram = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, x, y);
-    int rs = gdk_pixbuf_get_rowstride(histogram);
-    int n = gdk_pixbuf_get_n_channels(histogram);
-    unsigned char *data = gdk_pixbuf_get_pixels(histogram);
+GdkPixbuf *create_histogram_img(GdkPixbuf *image, int channel) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+
+    unsigned long histogram[256];
+    double alpha = 255.0 / (double)(x*y);
+
+    histogram_calculation(image, histogram, channel);
+    // Normalizes histogram
+    for (int i = 0; i < 256; i++)
+        histogram[i] = round(alpha * (double)histogram[i]);
+
+    GdkPixbuf *histogram_img = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, 256, 256);
+    int hrs = gdk_pixbuf_get_rowstride(histogram_img);
+    int hn = gdk_pixbuf_get_n_channels(histogram_img);
+    unsigned char *hdata = gdk_pixbuf_get_pixels(histogram_img);
     
     for (int i = 0; i < 256; i++) {
-        memset(&data[map(i,0,0,rs,n)], 200, (256 - hist[i])*n);
+        memset(&hdata[map(i,0,0,hrs,hn)], 220, 256*hn);
+        memset(&hdata[map(i,0,0,hrs,hn)], 0, histogram[i]*hn);
     }
 
-    histogram = rotate_right90(histogram);
+    histogram_img = rotate_left90(histogram_img);
 
-    return histogram;
+    return histogram_img;
+}
+
+// Assumes hist is array of size 256
+void histogram_calculation(GdkPixbuf *image, unsigned long *hist, int channel) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+
+    // Sets hist to zero
+    memset(hist, 0, 256*sizeof(long));
+
+    // Pixel counting
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            hist[data[map(i,j,channel,rs,n)]]++;
+        }
+    }
+
+}
+
+void histogram_equalization(GdkPixbuf *image) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+
+    unsigned long histogram[256];
+    unsigned long cum_histogram[256];
+    double alpha = 255.0 / (double)(x*y);
+
+    // For every channel in the image
+    for (int k = 0; k < n; k++) {
+        histogram_calculation(image, histogram, k);
+        memset(cum_histogram, 0, 256*sizeof(long));
+        cum_histogram[0] = alpha * histogram[0];
+        for (int l = 1; l < 256; l++) {
+            cum_histogram[l] = cum_histogram[l-1] + (alpha * histogram[l]);
+        }
+
+        for (int i = 0; i < y; i++) {
+            for (int j = 0; j < x; j++) {
+                data[map(i,j,k,rs,n)] = cum_histogram[data[map(i,j,k,rs,n)]];
+            }
+        }
+
+    }
+}
+
+// Assumes both images are grayscale
+void histogram_matching(GdkPixbuf *fimage, GdkPixbuf *gimage) {
+    int fn = gdk_pixbuf_get_n_channels(fimage);
+    int frs = gdk_pixbuf_get_rowstride(fimage);
+    g_assert(gdk_pixbuf_get_bits_per_sample(fimage) == 8);
+    int fx = gdk_pixbuf_get_width(fimage);
+    int fy = gdk_pixbuf_get_height(fimage);
+    unsigned char *fdata = gdk_pixbuf_get_pixels(fimage);
+    int gn = gdk_pixbuf_get_n_channels(gimage);
+    int grs = gdk_pixbuf_get_rowstride(gimage);
+    g_assert(gdk_pixbuf_get_bits_per_sample(gimage) == 8);
+    int gx = gdk_pixbuf_get_width(gimage);
+    int gy = gdk_pixbuf_get_height(gimage);
+    unsigned char *gdata = gdk_pixbuf_get_pixels(gimage);
+
+    unsigned long fhistogram[256];
+    unsigned long fcum_histogram[256];
+    double falpha = 255.0 / (double)(fx*fy);
+    unsigned long ghistogram[256];
+    unsigned long gcum_histogram[256];
+    double galpha = 255.0 / (double)(gx*gy);
+
+    for (int k = 0; k < fn; k++) {
+        histogram_calculation(fimage, fhistogram, k);
+        memset(fcum_histogram, 0, 256*sizeof(long));
+        fcum_histogram[0] = falpha * fhistogram[0];
+        for (int l = 1; l < 256; l++) 
+            fcum_histogram[l] = fcum_histogram[l-1] + (falpha * fhistogram[l]);
+
+        histogram_calculation(gimage, ghistogram, k);
+        memset(gcum_histogram, 0, 256*sizeof(long));
+        gcum_histogram[0] = galpha * ghistogram[0];
+        for (int l = 1; l < 256; l++) 
+            gcum_histogram[l] = gcum_histogram[l-1] + (galpha * ghistogram[l]);
+
+        for (int i = 0; i < fy; i++) {
+            for (int j = 0; j < fx; j++) {
+                fdata[map(i,j,k,frs,fn)] = gcum_histogram[fcum_histogram[fdata[map(i,j,k,frs,fn)]]];
+            }
+        }
+    }
 }
 
 #endif
