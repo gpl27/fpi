@@ -265,7 +265,7 @@ void zout_button_click(GtkWidget *widget, AppData *metadata) {
         g_print("No image loaded\n");
         return;
     }
-    int sx = 2;
+    int sx = 3;
     int sy = 2;
     metadata->output_img = zoom_out(metadata->output_img, sx, sy);
     place_image_outwindow(metadata);
@@ -307,7 +307,7 @@ void prex_button_click(GtkWidget *widget, AppData *metadata) {
         return;
     }
     double kernel[3][3] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
-    convolute(metadata->output_img, kernel);
+    convolute127(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
@@ -317,7 +317,7 @@ void prey_button_click(GtkWidget *widget, AppData *metadata) {
         return;
     }
     double kernel[3][3] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
-    convolute(metadata->output_img, kernel);
+    convolute127(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
@@ -327,7 +327,7 @@ void sobx_button_click(GtkWidget *widget, AppData *metadata) {
         return;
     }
     double kernel[3][3] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-    convolute(metadata->output_img, kernel);
+    convolute127(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
@@ -337,7 +337,7 @@ void soby_button_click(GtkWidget *widget, AppData *metadata) {
         return;
     }
     double kernel[3][3] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-    convolute(metadata->output_img, kernel);
+    convolute127(metadata->output_img, kernel);
     place_image_outwindow(metadata);
 }
 
@@ -398,6 +398,7 @@ void hmatch_button_click(GtkWidget *widget, AppData *metadata) {
         g_print("No image loaded\n");
         return;
     }
+    rgb_to_l(metadata->output_img);
     histogram_matching(metadata->output_img, metadata->img_to_match);
     place_image_outwindow(metadata);
 

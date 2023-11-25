@@ -15,6 +15,7 @@ GdkPixbuf *rotate_left90(GdkPixbuf *image);
 GdkPixbuf *zoom_in(GdkPixbuf *image);
 GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy);
 void convolute(GdkPixbuf *image, double kernel[3][3]); // Could use more tests
+void convolute127(GdkPixbuf *image, double kernel[3][3]); // Could use more tests
 
 void histogram_calculation(GdkPixbuf *image, unsigned long *hist, int channel);
 GdkPixbuf *create_histogram_img(GdkPixbuf *image, int channel);
@@ -337,6 +338,40 @@ GdkPixbuf *zoom_out(GdkPixbuf *image, int sx, int sy) {
     return nimage;
 }
 
+// Assumes kernel is a 3x3 matrix
+void convolute127(GdkPixbuf *image, double kernel[3][3]) {
+    int n = gdk_pixbuf_get_n_channels(image);
+    int rs = gdk_pixbuf_get_rowstride(image);
+    g_assert(gdk_pixbuf_get_bits_per_sample(image) == 8);
+    int x = gdk_pixbuf_get_width(image);
+    int y = gdk_pixbuf_get_height(image);
+    unsigned char *data = gdk_pixbuf_get_pixels(image);
+
+    // Create temporary copy of image
+    GdkPixbuf *imagecpy = gdk_pixbuf_copy(image);
+    unsigned char *datacpy = gdk_pixbuf_get_pixels(imagecpy);
+    int nrs = gdk_pixbuf_get_rowstride(imagecpy);
+
+    double sum;
+    for (int i = 1; i < y-1; i++) {
+        for (int j = 1; j < x-1; j++) {
+            for (int k = 0; k < n; k++) {
+                sum = 0;
+                for (int l = 0; l < 3; l++) {
+                    for (int m = 0; m < 3; m++) {
+                        sum += datacpy[map((i-1+l),(j-1+m),k,nrs,n)]*kernel[2-l][2-m];
+                    }
+                }
+                sum += 127;
+                sum = (sum < 0)? 0 : sum;
+                sum = (sum > 255)? 255 : sum;
+                data[map(i,j,k,rs,n)] = (unsigned char) sum;
+            }
+        }
+    }
+
+    g_object_unref(imagecpy);
+}
 
 // Assumes kernel is a 3x3 matrix
 void convolute(GdkPixbuf *image, double kernel[3][3]) {
@@ -477,32 +512,40 @@ void histogram_matching(GdkPixbuf *fimage, GdkPixbuf *gimage) {
     double galpha = 255.0 / (double)(gx*gy);
     unsigned long gcum_inv[256];
     unsigned long match_histogram[256];
-    unsigned long shade_to_find;
-    unsigned long closest_shade;
-    int diff;
+    int shade_to_find;
+    int closest_shade;
+    int diff, mindiff;
 
-    for (int k = 0; k < fn; k++) {
-        histogram_calculation(fimage, fhistogram, k);
-        memset(fcum_histogram, 0, 256*sizeof(long));
-        fcum_histogram[0] = falpha * fhistogram[0];
-        for (int l = 1; l < 256; l++) 
-            fcum_histogram[l] = fcum_histogram[l-1] + (falpha * fhistogram[l]);
+    histogram_calculation(fimage, fhistogram, 0);
+    memset(fcum_histogram, 0, 256*sizeof(long));
+    fcum_histogram[0] = falpha * fhistogram[0];
+    for (int l = 1; l < 256; l++) 
+        fcum_histogram[l] = fcum_histogram[l-1] + (falpha * fhistogram[l]);
 
-        histogram_calculation(gimage, ghistogram, k);
-        memset(gcum_histogram, 0, 256*sizeof(long));
-        gcum_histogram[0] = galpha * ghistogram[0];
-        for (int l = 1; l < 256; l++) 
-            gcum_histogram[l] = gcum_histogram[l-1] + (galpha * ghistogram[l]);
+    histogram_calculation(gimage, ghistogram, 0);
+    memset(gcum_histogram, 0, 256*sizeof(long));
+    gcum_histogram[0] = galpha * ghistogram[0];
+    for (int l = 1; l < 256; l++) 
+        gcum_histogram[l] = gcum_histogram[l-1] + (galpha * ghistogram[l]);
 
-        // Create inverse gcum
-        for (int l = 0; l < 256; l++) {
-            gcum_inv[gcum_histogram[l]] = l;
-        }
-
-        for (int i = 0; i < fy; i++) {
-            for (int j = 0; j < fx; j++) {
-                fdata[map(i,j,k,frs,fn)] = gcum_inv[fcum_histogram[fdata[map(i,j,k,frs,fn)]]];
+    // Create match_histogram
+    for (int l = 0; l < 256; l++) {
+        mindiff = 257;
+        closest_shade = 0;
+        shade_to_find = (int) fcum_histogram[l];
+        for (int m = 0; m < 256; m++) {
+            diff = abs(shade_to_find - (int) gcum_histogram[m]);
+            if (diff < mindiff) {
+                mindiff = diff;
+                closest_shade = m;
             }
+        }
+        match_histogram[l] = closest_shade;
+    }
+
+    for (int i = 0; i < fy; i++) {
+        for (int j = 0; j < fx; j++) {
+            memset(&fdata[map(i,j,0,frs,fn)], match_histogram[fdata[map(i,j,0,frs,fn)]], fn);
         }
     }
 }
