@@ -273,7 +273,7 @@ int main(int argc, char **argv) {
                 frameSize = Size(frame.cols, frame.rows);
 
         // Display frame
-        imshow("Camera", frame);
+        cv::imshow("Camera", frame);
 
         // Record frame
         if (isRecording) {
@@ -286,6 +286,6 @@ int main(int argc, char **argv) {
     cap.release(); // release the VideoCapture object
     if (isRecording)
         writer.release();
-    destroyAllWindows();
+    cv::destroyAllWindows();
     return 0;
 }
